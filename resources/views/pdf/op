@@ -1,0 +1,61 @@
+<style type="text/css">
+    div {
+        width: 450px;
+        padding: 40px;
+        margin: 5px;
+        margin-top: -30px;
+    }
+
+    .tg {
+        border-collapse: collapse;
+        border-spacing: 0;
+    }
+
+    .tg td {
+        border-color: black;
+        border-style: solid;
+        border-width: 1px;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        overflow: hidden;
+        padding: 10px 5px;
+        word-break: normal;
+    }
+
+    .tg th {
+        border-color: black;
+        border-style: solid;
+        border-width: 1px;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        font-weight: normal;
+        overflow: hidden;
+        padding: 10px 5px;
+        word-break: normal;
+    }
+
+    .tg .tg-73oq {
+        border-color: #000000;
+        text-align: left;
+        vertical-align: top
+    }
+
+    .tg .tg-0lax {
+        text-align: left;
+        vertical-align: top
+    }
+</style>
+<img src="{{ public_path('assets/logo/KF_LK_Logo_Full_Colors_Primer_Tagline.png') }}"" alt="" height="100px;"
+    style="margin-left:500px;margin-top:-40px;">
+<div>
+    <table style="undefined;table-layout: fixed; width: 620px;margin-top:-30px;">
+        <h4 style="text-align: center;margin-top:-30px;">SURAT KETERANGAN BEROBAT</h4>
+        <h4 style="text-align: center;font-style:italic;margin-top:-20px;font-weight: lighter;">MEDICAL TREATMENT LETTER
+        </h4>
+        <h4 style="text-align: center;margin-top:-10px;font-weight: lighter;">No. {{ $result->no_letters ?? '-' }}</h4>
+        <h4 style="margin-top:-20px;font-weight: lighter;text-align:justify;">Yang bertanda tangan dibawah ini, dokter
+            klinik kimia farma menerangkan bahwa :</h4>
+        <h4 style="font-style:italic;margin-top:-20px;font-weight: lighter;text-align:justify;">Undersigned, Klinik
+            kimia farma doctor, declare that:</h4>
+    </table>
+</div>
