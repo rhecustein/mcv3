@@ -1,3 +1,42 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom Components untuk Timeline */
+@layer components {
+    .timeline-item {
+        @apply relative flex flex-col md:flex-row items-center gap-6 md:gap-0;
+    }
+    /* Mengatur posisi item bergantian pada layar medium ke atas */
+    .timeline-item:nth-child(even) {
+        @apply md:flex-row-reverse;
+    }
+
+    .timeline-icon {
+        @apply relative w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center z-10 shadow-md ring-8 ring-gray-50;
+        /* `ring-gray-50` agar icon terlihat "memotong" garis vertikal */
+    }
+
+    .timeline-content {
+        @apply bg-white p-6 rounded-lg shadow-md border border-gray-200 transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
+    }
+}
+
+/* Animasi dan Delay Utility */
+@layer utilities {
+    .delay-200 {
+        animation-delay: 200ms;
+    }
+    .delay-300 {
+        animation-delay: 300ms;
+    }
+    .delay-400 {
+        animation-delay: 400ms;
+    }
+    .delay-600 {
+        animation-delay: 600ms;
+    }
+    .delay-900 {
+        animation-delay: 900ms;
+    }
+}
