@@ -2,144 +2,162 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Outlet;
 use App\Models\Admin;
 use App\Models\Doctor;
+use App\Models\Outlet;
 use App\Models\Result;
 use App\Models\User;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Http\Request;
 use Carbon\Carbon;
-use DB;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log; // Tetap gunakan Log jika diperlukan
 
 class OutletController extends Controller
 {
     /**
-     * 📊 Dashboard outlet untuk role `outlet`
+     * Menampilkan dashboard untuk role 'outlet'.
      */
-   public function dashboard()
+    public function dashboard()
     {
         $user = auth()->user();
+        // firstOrFail akan otomatis menampilkan 404 jika tidak ditemukan
+        $outlet = Outlet::where('email', $user->email)->firstOrFail();
 
-        // Cari outlet berdasarkan email user
-        $outlet = Outlet::where('email', $user->email)->first();
+        $totalDoctors = $outlet->doctors()->count();
+        $totalLetters = $outlet->results()->count();
 
-        if (!$outlet) {
-            abort(403, 'Outlet tidak ditemukan.');
-        }
-
-        $totalDoctors = Doctor::where('outlet_id', $outlet->id)->count();
-        $totalLetters = Result::where('outlet_id', $outlet->id)->count();
-
-        $latestLetters = Result::with(['patient', 'doctor.user'])
-            ->where('outlet_id', $outlet->id)
+        $latestLetters = $outlet->results()
+            ->with(['patient.user', 'doctor.user'])
             ->latest()
             ->take(5)
             ->get();
 
-        // Ambil data jumlah surat per bulan
-        $monthlyLetters = DB::table('results')
+        $monthlyLetters = $outlet->results()
             ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as total")
-            ->where('outlet_id', $outlet->id)
+            ->where('created_at', '>=', now()->subYear()) // Optimasi: Hanya 1 tahun terakhir
             ->groupBy('month')
-            ->orderBy('month')
+            ->orderBy('month', 'asc')
             ->get();
 
-        // Format untuk chart
-        $labels = [];
-        $data = [];
+        $labels = $monthlyLetters->pluck('month')->map(fn($month) => Carbon::parse($month . '-01')->translatedFormat('F Y'));
+        $data = $monthlyLetters->pluck('total');
 
-        foreach ($monthlyLetters as $entry) {
-            $labels[] = Carbon::parse($entry->month . '-01')->translatedFormat('F Y');
-            $data[] = $entry->total;
-        }
-
-        return view('outlets.dashboard', compact(
-            'outlet',
-            'totalDoctors',
-            'totalLetters',
-            'latestLetters',
-            'labels',
-            'data'
-        ));
+        return view('outlets.dashboard', compact('outlet', 'totalDoctors', 'totalLetters', 'latestLetters', 'labels', 'data'));
     }
 
     /**
-     * 🗂️ Daftar semua outlet (superadmin only)
+     * Menampilkan daftar semua outlet untuk Superadmin.
      */
     public function index(Request $request)
     {
-        $outlets = Outlet::with(['admin.user'])
-            ->withCount([
-                'doctors as doctor_count',
-                'results as letter_count'
-            ])
-            ->when($request->search, function ($q) use ($request) {
-                $q->where(function ($sub) use ($request) {
-                    $sub->where('name', 'like', "%{$request->search}%")
-                        ->orWhere('email', 'like', "%{$request->search}%")
-                        ->orWhere('city', 'like', "%{$request->search}%");
+        // Query dasar yang bisa digunakan kembali
+        $baseQuery = Outlet::query();
+
+        // Data untuk kartu statistik
+        $totalOutlets = (clone $baseQuery)->count();
+        $bannedOutlets = (clone $baseQuery)->where('is_active', false)->count();
+        $totalLetters = Result::count();
+        
+        // Query utama untuk tabel/grid
+        $outletsQuery = Outlet::with(['admin.user'])
+            ->withCount(['doctors', 'results as letter_count'])
+            ->when($request->search, function ($q, $search) {
+                $q->where(function ($sub) use ($search) {
+                    $sub->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('city', 'like', "%{$search}%")
+                        ->orWhereHas('admin.user', fn($u) => $u->where('name', 'like', "%{$search}%"));
                 });
             })
-            ->when($request->filled('is_active'), fn($q) =>
-                $q->where('is_active', $request->is_active)
-            )
-            ->latest()
-            ->paginate(15);
+            ->when($request->filled('is_active'), fn($q) => $q->where('is_active', $request->is_active));
+        
+        $provinces = (clone $baseQuery)->select('province')
+            ->whereNotNull('province')
+            ->where('province', '!=', '')
+            ->distinct()
+            ->orderBy('province')
+            ->pluck('province');
 
-        $totalOutlets = Outlet::count();
-        $bannedOutlets = Outlet::where('is_active', false)->count();
+        $outlets = $outletsQuery->latest()->paginate(10);
 
         return view('superadmin.outlets.index', compact(
             'outlets',
             'totalOutlets',
-            'bannedOutlets'
+            'bannedOutlets',
+            'totalLetters',
+            'provinces'
         ));
     }
 
-
     /**
-     * ➕ Form tambah outlet (superadmin only)
+     * Menampilkan form tambah outlet.
      */
     public function create()
     {
-        $admins = Admin::with('user')->get();
+        // Optimasi: Hanya ambil admin yang aktif dan urutkan
+        $admins = Admin::with('user')->whereHas('user', fn($q) => $q->where('is_active', true))
+            ->get()->sortBy('user.name');
         return view('superadmin.outlets.create', compact('admins'));
     }
 
     /**
-     * 💾 Simpan outlet baru (superadmin only)
+     * Menyimpan outlet baru.
+     * PENINGKATAN: Menggunakan DB Transaction untuk keamanan data
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
             'name'      => 'required|string|max:100',
-            'email'     => 'nullable|email|max:100|unique:outlets',
+            'email'     => 'nullable|email|max:100|unique:users,email|unique:outlets,email',
             'phone'     => 'nullable|string|max:20',
             'address'   => 'nullable|string|max:255',
             'province'  => 'nullable|string|max:50',
             'city'      => 'nullable|string|max:50',
             'admin_id'  => 'nullable|exists:admins,id',
+            'is_active' => 'boolean' // validasi boolean lebih aman untuk checkbox
         ]);
 
-        Outlet::create($validated);
+        try {
+            DB::beginTransaction();
 
-        return redirect()->route('outlets.index')->with('success', 'Outlet berhasil ditambahkan.');
+            // Buat user baru untuk outlet jika email diisi
+            if (!empty($validated['email'])) {
+                User::create([
+                    'name' => $validated['name'],
+                    'email' => $validated['email'],
+                    'password' => Hash::make('default123'), // Password default
+                    'role_type' => 'outlet',
+                    'is_active' => $validated['is_active'] ?? true,
+                ]);
+            }
+
+            Outlet::create($validated);
+            
+            DB::commit();
+            return redirect()->route('outlets.index')->with('success', 'Outlet baru berhasil ditambahkan.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Gagal membuat outlet: ' . $e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan saat menyimpan data. Silakan coba lagi.')->withInput();
+        }
     }
 
     /**
-     * ✏️ Form edit outlet (superadmin only)
+     * Menampilkan form edit outlet.
      */
     public function edit(Outlet $outlet)
     {
-        $admins = Admin::with('user')->get();
+        $outlet->load('admin.user');
+        $admins = Admin::with('user')->whereHas('user', fn($q) => $q->where('is_active', true))
+            ->get()->sortBy('user.name');
+            
         return view('superadmin.outlets.edit', compact('outlet', 'admins'));
     }
 
     /**
-     * 🔄 Update outlet (superadmin only)
+     * Memperbarui data outlet.
      */
     public function update(Request $request, Outlet $outlet)
     {
@@ -151,65 +169,72 @@ class OutletController extends Controller
             'province'  => 'nullable|string|max:50',
             'city'      => 'nullable|string|max:50',
             'admin_id'  => 'nullable|exists:admins,id',
-            'password'  => 'nullable|string|min:6',
+            'is_active' => 'boolean'
         ]);
 
-        // Simpan perubahan outlet
-        $outlet->update(collect($validated)->except('password')->toArray());
+        $outlet->update($validated);
 
-        // Ubah password admin jika diisi dan admin ada
-        if ($request->filled('password') && $outlet->admin && $outlet->admin->user) {
-            $outlet->admin->user->update([
-                'password' => bcrypt($request->password),
-            ]);
+        // Update juga status user terkait jika ada
+        if ($outlet->user) {
+            $outlet->user->update(['is_active' => $validated['is_active']]);
         }
-
-        return redirect()->route('outlets.index')->with('success', 'Outlet berhasil diperbarui.');
+        
+        return redirect()->route('outlets.index')->with('success', "Data outlet {$outlet->name} berhasil diperbarui.");
     }
 
-
     /**
-     * 🗑️ Hapus outlet (soft delete)
+     * Menghapus outlet.
      */
     public function destroy(Outlet $outlet)
     {
-        $outlet->delete();
-        return redirect()->route('outlets.index')->with('success', 'Outlet berhasil dihapus.');
+        try {
+            DB::beginTransaction();
+            // Hapus juga user terkait jika ada
+            if ($outlet->user) {
+                $outlet->user->delete();
+            }
+            $outlet->delete();
+            DB::commit();
+            return redirect()->route('outlets.index')->with('success', "Outlet {$outlet->name} berhasil dihapus permanen.");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Gagal menghapus outlet: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menghapus outlet.');
+        }
     }
 
-    public function toggleActive(Outlet $outlet)
+    /**
+     * Mengubah status aktif/nonaktif outlet.
+     */
+    public function toggle(Outlet $outlet)
     {
-        $outlet->update(['is_active' => !$outlet->is_active]);
-        return back()->with('success', 'Status outlet berhasil diperbarui.');
+        $newStatus = !$outlet->is_active;
+        $outlet->update(['is_active' => $newStatus]);
+
+        // Update juga status user terkait
+        if($outlet->user) {
+            $outlet->user->update(['is_active' => $newStatus]);
+        }
+
+        $statusText = $newStatus ? 'diaktifkan' : 'dinonaktifkan';
+        return back()->with('success', "Outlet {$outlet->name} dan akun user terkait berhasil {$statusText}.");
     }
 
+    /**
+     * Reset password user outlet.
+     */
     public function resetPassword(Outlet $outlet)
     {
-        // Ambil user berdasarkan email dari outlet
-        $user = User::where('email', $outlet->email)->first();
+        // Cari user berdasarkan email dari outlet, atau user_id jika ada relasi
+        $user = $outlet->user ?? User::where('email', $outlet->email)->first();
 
         if (!$user) {
-            return back()->with('error', 'User dengan email outlet tidak ditemukan.');
+            return back()->with('error', 'User untuk outlet ini tidak ditemukan.');
         }
 
-        // Set password baru
-        $user->forceFill([
-            'password' => Hash::make('default123'),
-        ])->save();
+        $user->update(['password' => Hash::make('default123')]);
 
-        // Verifikasi hash berhasil
-        $check = Hash::check('default123', $user->fresh()->password);
-        Log::info('✅ Reset Password Check:', [
-            'outlet' => $outlet->name,
-            'user_email' => $user->email,
-            'check' => $check,
-        ]);
-
-        if (!$check) {
-            return back()->with('error', 'Password gagal disimpan.');
-        }
-
-        return back()->with('success', "Password user <strong>{$user->email}</strong> berhasil direset ke <code>default123</code>.");
+        return back()->with('success', "Password untuk user {$user->email} berhasil direset.");
     }
-
 }

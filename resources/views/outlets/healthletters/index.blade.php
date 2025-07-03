@@ -1,345 +1,195 @@
-@extends('layouts.app')
+@extends('layouts.app', ['header' => 'Manajemen Surat Kesehatan'])
 
 @section('content')
-<div class="bg-gradient-to-r from-blue-600 to-blue-400 text-white p-6 rounded-xl shadow-lg mb-6 animate-fade-in">
-    <h2 class="text-3xl font-bold mb-2">Manage Health Letters</h2>
-    <nav class="text-sm">
-        <ol class="list-reset flex">
-            <li><a href="{{ route('outlet.healthletter.index') }}" class="underline">Health Letters</a></li>
-        </ol>
-    </nav>
-</div>
+<div class="space-y-6">
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-    <div class="bg-blue-100 p-5 rounded-lg shadow hover:shadow-md transition duration-300">
-        <p class="text-sm text-blue-800">Total Letters</p>
-        <h3 class="text-2xl font-extrabold text-blue-900">{{ $totalLettersAllTime }}</h3>
-        <p class="text-xs text-blue-700">All Time</p>
+    <div aria-live="assertive" class="pointer-events-none fixed inset-0 flex items-start px-4 py-6 sm:p-6 z-50">
+        <div class="flex w-full flex-col items-center space-y-4 sm:items-end">
+            @if (session('success'))
+                {{-- Komponen alert ini harus sudah Anda buat di resources/views/components/alert.blade.php --}}
+                <x-alert type="success" :message="session('success')" />
+            @endif
+            @if (session('error'))
+                <x-alert type="error" :message="session('error')" />
+            @endif
+        </div>
     </div>
-    <div class="bg-red-100 p-5 rounded-lg shadow hover:shadow-md transition duration-300">
-        <p class="text-sm text-red-800">Total MC</p>
-        <h3 class="text-2xl font-extrabold text-red-900">{{ $totalMCAllTime }}</h3>
-        <p class="text-xs text-red-700">All Time</p>
-    </div>
-    <div class="bg-green-100 p-5 rounded-lg shadow hover:shadow-md transition duration-300">
-        <p class="text-sm text-green-800">Total MCL</p>
-        <h3 class="text-2xl font-extrabold text-green-900">{{ $totalMCLAllTime }}</h3>
-        <p class="text-xs text-green-700">All Time</p>
-    </div>
-</div>
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-    <div class="bg-blue-200 p-5 rounded-lg shadow hover:shadow-md transition duration-300">
-        <p class="text-sm text-blue-900">This Month Letters</p>
-        <h3 class="text-2xl font-extrabold text-blue-950">{{ $totalLettersThisMonth }}</h3>
-    </div>
-    <div class="bg-red-200 p-5 rounded-lg shadow hover:shadow-md transition duration-300">
-        <p class="text-sm text-red-900">This Month MC</p>
-        <h3 class="text-2xl font-extrabold text-red-950">{{ $totalMCThisMonth }}</h3>
-    </div>
-    <div class="bg-green-200 p-5 rounded-lg shadow hover:shadow-md transition duration-300">
-        <p class="text-sm text-green-900">This Month MCL</p>
-        <h3 class="text-2xl font-extrabold text-green-950">{{ $totalMCLThisMonth }}</h3>
-    </div>
-</div>
-
-<div class="bg-white shadow-xl rounded-lg p-6 animate-fade-in">
-    <div class="flex justify-between items-center mb-4">
-        <div class="font-semibold text-lg">Filter Surat</div>
-        <div class="flex gap-2">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800">Riwayat Surat Kesehatan</h1>
+            <p class="mt-1 text-sm text-slate-500">Lihat, kelola, dan terbitkan semua surat sehat (SKB) dan surat sakit (MC).</p>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
             <a href="{{ route('outlet.results.skb.create') }}"
-                class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded">+ Surat Sehat (SKB)</a>
+               class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-all duration-200">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" /></svg>
+                <span>Buat Surat Sehat</span>
+            </a>
             <a href="{{ route('outlet.results.mc.create') }}"
-                class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded">+ Surat Sakit (MC)</a>
+               class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-rose-600 text-white font-semibold rounded-lg shadow-md hover:bg-rose-700 transition-all duration-200">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" /></svg>
+                <span>Buat Surat Sakit</span>
+            </a>
         </div>
     </div>
 
-    <form action="{{ route('outlet.healthletter.index') }}" method="GET"
-        class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-        <!-- Keyword -->
-        <div>
-            <label for="keyword" class="block text-sm font-medium text-gray-700">Cari Pasien</label>
-            <input type="text" name="keyword" id="keyword" value="{{ request('keyword') }}" placeholder="Nama pasien..."
-                class="mt-1 block w-full rounded border-gray-300 px-3 py-2">
-        </div>
-
-        <!-- Date From -->
-        <div>
-            <label for="from" class="block text-sm font-medium text-gray-700">Dari Tanggal</label>
-            <input type="date" name="from" id="from" value="{{ request('from') }}"
-                class="mt-1 block w-full rounded border-gray-300 px-3 py-2">
-        </div>
-
-        <!-- Date To -->
-        <div>
-            <label for="to" class="block text-sm font-medium text-gray-700">Sampai Tanggal</label>
-            <input type="date" name="to" id="to" value="{{ request('to') }}"
-                class="mt-1 block w-full rounded border-gray-300 px-3 py-2">
-        </div>
-
-        <!-- Filter Type -->
-        <div>
-            <label for="type" class="block text-sm font-medium text-gray-700">Jenis Surat</label>
-            <select name="type" id="type" class="mt-1 block w-full rounded border-gray-300 px-3 py-2">
-                <option value="">Semua</option>
-                <option value="skb" {{ request('type') === 'skb' ? 'selected' : '' }}>Surat Sehat (SKB)</option>
-                <option value="mc" {{ request('type') === 'mc' ? 'selected' : '' }}>Surat Sakit (MC)</option>
-            </select>
-        </div>
-
-        <!-- Filter Doctor -->
-        <div>
-            <label for="doctor_id" class="block text-sm font-medium text-gray-700">Dokter</label>
-            <select name="doctor_id" id="doctor_id" class="mt-1 block w-full rounded border-gray-300 px-3 py-2">
-                <option value="">Semua</option>
-                @foreach($doctors as $doctor)
-                <option value="{{ $doctor->id }}" {{ request('doctor_id') == $doctor->id ? 'selected' : '' }}>
-                    {{ $doctor->user->name }}
-                </option>
-                @endforeach
-            </select>
-        </div>
-    </form>
-
-   <!-- Filter Action -->
-<div class="flex justify-end gap-2 mb-4">
-
-    <!-- Filter -->
-    <button type="submit" form="filter-form"
-        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded shadow-sm inline-flex items-center gap-1">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
-            stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L15 12.414V18a1 1 0 01-1.447.894l-4-2A1 1 0 019 16v-3.586L3.293 6.707A1 1 0 013 6V4z" />
-        </svg>
-        Filter
-    </button>
-
-    <!-- Reset Filter -->
-    <a href="{{ route('outlet.healthletter.index') }}"
-        class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded shadow-sm inline-flex items-center gap-1">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
-            stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M4 4v5h.582M20 20v-5h-.581M4 9a9 9 0 0116 6M20 15a9 9 0 01-16-6" />
-        </svg>
-        Reset
-    </a>
-
-    <!-- Antrian PDF -->
-    <a href="{{ route('outlet.queue.index') }}"
-        class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded shadow-sm inline-flex items-center gap-1">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
-            stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m-9 11V5" />
-        </svg>
-        Antrian PDF
-    </a>
-
-    <!-- Refresh Page -->
-    <a href="{{ route('outlet.healthletter.index') }}"
-        class="bg-indigo-500 hover:bg-indigo-600 text-white text-sm px-4 py-2 rounded inline-flex items-center gap-1">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
-            stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M4 4v5h.582M20 20v-5h-.581M4 9a9 9 0 0116 6M20 15a9 9 0 01-16-6" />
-        </svg>
-        Refresh
-    </a>
-
-    <!-- Trash / Deleted -->
-    <a href="{{ route('outlet.result.trash.index') }}" {{-- replace with actual trash route --}}
-        class="bg-red-500 hover:bg-red-600 text-white text-sm px-4 py-2 rounded inline-flex items-center gap-1">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
-            stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3H4m16 0h-4" />
-        </svg>
-        Trash
-    </a>
-
-</div>
-
-    <div class="flex justify-end gap-2 mb-4">
-
-        @if (auth()->user()->can('healthletter.bulking_generate_document'))
-        <button data-bs-toggle="modal" data-bs-target="#bulkingGenerateDocument"
-            class="bg-yellow-500 hover:bg-yellow-600 text-white text-sm px-4 py-2 rounded">Bulking Generate</button>
-        @endif
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        @php
+            $statCards = [
+                ['label' => 'Total Surat (Bulan Ini)', 'value' => $totalLettersThisMonth, 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m9.75 9.75l-2.25 2.25m0 0l-2.25 2.25m2.25-2.25l2.25 2.25m-2.25-2.25l-2.25-2.25M12 21l-2.25-2.25m0 0l-2.25-2.25m2.25 2.25l2.25-2.25m2.25 2.25l-2.25 2.25M12 3l2.25 2.25m0 0l2.25 2.25M12 3l-2.25 2.25m0 0l-2.25 2.25" />', 'color' => 'blue'],
+                ['label' => 'Surat Sehat (Bulan Ini)', 'value' => $totalSKBThisMonth, 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />', 'color' => 'green'],
+                ['label' => 'Surat Sakit (Bulan Ini)', 'value' => $totalMCThisMonth, 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />', 'color' => 'red'],
+                ['label' => 'Total Surat (Semua)', 'value' => $totalLettersAllTime, 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />', 'color' => 'slate'],
+            ];
+        @endphp
+        @foreach($statCards as $card)
+            <div class="bg-white border border-slate-200 rounded-xl p-5 flex items-center gap-5 transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+                 <div class="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-{{$card['color']}}-100 rounded-lg">
+                    <svg class="w-7 h-7 text-{{$card['color']}}-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">{!! $card['icon'] !!}</svg>
+                </div>
+                <div>
+                    <p class="text-sm text-slate-500">{{ $card['label'] }}</p>
+                    <p class="text-2xl font-bold text-slate-800 mt-1">{{ $card['value'] }}</p>
+                </div>
+            </div>
+        @endforeach
     </div>
 
-    @if (session('success'))
-    <div class="bg-green-100 border border-green-300 text-green-800 p-3 rounded mb-4">{{ session('success') }}</div>
-    @endif
-    @if (session('error'))
-    <div class="bg-red-100 border border-red-300 text-red-800 p-3 rounded mb-4">{{ session('error') }}</div>
-    @endif
+    <div class="bg-white border border-slate-200 rounded-xl p-4">
+        <form id="filter-form" action="{{ route('outlet.healthletter.index') }}" method="GET" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div>
+                <label for="keyword" class="block text-xs font-medium text-slate-600 mb-1">Cari Pasien</label>
+                <input type="text" name="keyword" id="keyword" value="{{ request('keyword') }}" placeholder="Nama pasien..."
+                       class="w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+            </div>
+            <div>
+                <label for="from" class="block text-xs font-medium text-slate-600 mb-1">Dari Tanggal</label>
+                <input type="date" name="from" id="from" value="{{ request('from') }}"
+                       class="w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+            </div>
+            <div>
+                <label for="to" class="block text-xs font-medium text-slate-600 mb-1">Sampai Tanggal</label>
+                <input type="date" name="to" id="to" value="{{ request('to') }}"
+                       class="w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+            </div>
+            <div>
+                <label for="type" class="block text-xs font-medium text-slate-600 mb-1">Jenis Surat</label>
+                <select name="type" id="type" class="w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                    <option value="">Semua Jenis</option>
+                    <option value="skb" @selected(request('type') === 'skb')>Surat Sehat (SKB)</option>
+                    <option value="mc" @selected(request('type') === 'mc')>Surat Sakit (MC)</option>
+                </select>
+            </div>
+             <div>
+                <label for="doctor_id" class="block text-xs font-medium text-slate-600 mb-1">Dokter</label>
+                <select name="doctor_id" id="doctor_id" class="w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                    <option value="">Semua Dokter</option>
+                    @foreach($doctors as $doctor)
+                        <option value="{{ $doctor->id }}" @selected(request('doctor_id') == $doctor->id)>{{ $doctor->user->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="flex items-end gap-2">
+                <button type="submit" class="w-full px-4 py-2 bg-slate-800 text-white rounded-md text-sm font-semibold hover:bg-slate-700 transition">Filter</button>
+                <a href="{{ route('outlet.healthletter.index') }}" class="w-full text-center px-4 py-2 bg-slate-200 text-slate-700 rounded-md text-sm font-medium hover:bg-slate-300 transition">Reset</a>
+            </div>
+        </form>
+    </div>
 
-    @if (strpos(session()->get('error'), 'Please set your sign virtual first') !== false)
-    <button data-bs-toggle="modal" data-bs-target="#setSignVirtualDoctor"
-        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded mb-4">
-        Set Your Sign Virtual Here
-    </button>
-    @endif
-
-    <div class="overflow-x-auto">
-        <table id="datatable" class="min-w-full bg-white border rounded shadow-sm">
-            <thead class="bg-gray-100">
-                <tr class="text-left border-b text-sm text-gray-600">
-                    <th class="p-2">No.</th>
-                    <th class="p-2">Patient Name</th>
-                    <th class="p-2">No Letter</th>
-                    <th class="p-2">Type Surat</th>
-                    <th class="p-2">Company</th>
-                    <th class="p-2">No Employe</th>
-                    <th class="p-2">Phone Number</th>
-                    <th class="p-2">Date</th>
-                    <th class="p-2">Outlet</th>
-                    <th class="p-2">Doctor</th>
-                    <th class="p-2">Status</th>
-                    <th class="p-2">Edit?</th>
-                    <th class="p-2">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse ($results as $index => $result)
-                <tr class="border-b text-sm text-gray-700 hover:bg-gray-50 transition duration-200">
-                    <td class="p-2">{{ $index + 1 }}</td>
-                    <td class="p-2">{{ $result->patient->full_name ?? '-' }}</td>
-                    <td class="p-2">{{ $result->no_letters ?? '-' }}</td>
-                    <td class="p-2 uppercase">{{ $result->type }}</td>
-                    <td class="p-2">{{ $result->company->name ?? '-' }}</td>
-                    <td class="p-2">{{ $result->patient->identity ?? '-' }}</td>
-                    <td class="p-2">{{ $result->patient->phone ?? '-' }}</td>
-                    <td class="p-2">{{ \Carbon\Carbon::parse($result->date)->format('d M Y') }}</td>
-                    <td class="p-2">{{ $result->outlet->name ?? '-' }}</td>
-                    <td class="p-2">{{ $result->doctor->user->name ?? '-' }}</td>
-                    <td class="p-2">
-                        <span class="px-2 py-1 text-xs font-medium rounded 
-                    {{ $result->document_name ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700' }}">
-                            {{ $result->document_name ? 'Selesai' : 'Draft' }}
-                        </span>
-                    </td>
-                    <td class="p-2">
-                        <span class="px-2 py-1 text-xs font-medium rounded 
-                    {{ $result->document_name ? 'bg-grey-100 text-white-700' : 'bg-yellow-100 text-yellow-700' }}">
-                           @if($result->edit == 'yes')
-                            <span class="text-green-700">Yes</span>
-                            @else
-                            <span class="text-yellow-700">No</span>
-                            @endif
-                        </span>
-                    </td>
-                    <td class="p-2 flex flex-wrap gap-2">
-
-                        <!-- Preview -->
-                        @if(in_array($result->type, ['mc', 'skb']) && $result->document_name)
-                            @php
-                                $previewRoute = $result->type === 'mc'
-                                    ? route('outlet.results.mc.preview', Crypt::encrypt($result->id))
-                                    : route('outlet.results.skb.preview', Crypt::encrypt($result->id));
-                            @endphp
-
-                            <a href="{{ $previewRoute }}"
-                                target="_blank"
-                                class="inline-flex items-center gap-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 text-xs font-medium px-3 py-1 rounded transition">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M15 12H9m12 0A9 9 0 1112 3a9 9 0 019 9z" />
-                                </svg>
-                                Preview
-                            </a>
-                        @endif
-
-
-                        <!-- Download -->
-                       @if($result->type && $result->document_name)
-                        <a href="{{ route('outlet.results.download', Crypt::encrypt($result->id)) }}"
-                            target="_blank"
-                            class="inline-flex items-center gap-1 bg-green-100 hover:bg-green-200 text-green-800 text-xs font-medium px-3 py-1 rounded transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M7 10l5 5m0 0l5-5m-5 5V4" />
-                            </svg>
-                            Download
-                        </a>
-                    @endif
-
-                        <!-- Edit -->
-                        <!-- <a href="{{ route('outlet.results.' . $result->type . '.edit', $result->id) }}"
-                            class="inline-flex items-center gap-1 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 text-xs font-medium px-3 py-1 rounded transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M11 5h10M3 12h18M3 19h10" />
-                            </svg>
-                            Edit
-                        </a> -->
-
-                        <!-- Regenerate PDF -->
-                        @if($result->type === 'skb' && $result->document_name)
-                        <a href="{{ route('outlet.results.skb.regenerate', $result->id) }}" class="inline-block"
-                            onsubmit="return confirm('Generate ulang file PDF untuk surat ini?')">
-                            @csrf
-                            <button type="submit"
-                                class="inline-flex items-center gap-1 bg-blue-100 hover:bg-blue-200 text-blue-800 text-xs font-medium px-3 py-1 rounded transition">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 4v1m0 14v1m8-8h1M4 12H3m15.364-6.364l.707.707M5.636 5.636l-.707.707m12.728 12.728l.707-.707M5.636 18.364l-.707-.707" />
-                                </svg>
-                                Generate PDF SKB
-                            </button>
-                        </a>
-                        @elseif($result->type === 'mc' && $result->document_name)
-                        <a href="{{ route('outlet.results.mc.regenerate', $result->id) }}" class="inline-block"
-                            onsubmit="return confirm('Generate ulang file PDF untuk surat ini?')">
-                            @csrf
-                            <button type="submit"
-                                class="inline-flex items-center gap-1 bg-blue-100 hover:bg-blue-200 text-blue-800 text-xs font-medium px-3 py-1 rounded transition">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 4v1m0 14v1m8-8h1M4 12H3m15.364-6.364l.707.707M5.636 5.636l-.707.707m12.728 12.728l.707-.707M5.636 18.364l-.707-.707" />
-                                </svg>
-                                Generate PDF MC
-                            </button>
-                        </a>
-                        @endif
-
-                        <!-- Delete -->
-                        <form method="POST"
-                            action="{{ route('outlet.results.' . $result->type . '.delete', $result->id) }}"
-                            class="inline-block" onsubmit="return confirm('Hapus surat ini?')">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit"
-                                class="inline-flex items-center gap-1 bg-red-100 hover:bg-red-200 text-red-800 text-xs font-medium px-3 py-1 rounded transition">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                                Hapus
-                            </button>
-                        </form>
-
-                    </td>
-
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="12" class="text-center text-gray-500 p-4">Belum ada surat yang dibuat.</td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
-        <div class="mt-4">
-            {{ $results->links() }}
+    <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead class="bg-slate-50 text-xs uppercase text-slate-500 tracking-wider">
+                    <tr>
+                        <th class="px-6 py-3 font-medium">Pasien</th>
+                        <th class="px-6 py-3 font-medium">Detail Surat</th>
+                        <th class="px-6 py-3 font-medium">Dokter</th>
+                        <th class="px-6 py-3 font-medium text-center">Status</th>
+                        <th class="px-6 py-3 font-medium text-center">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    @forelse ($results as $result)
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="font-semibold text-slate-800">{{ $result->patient->full_name ?? '-' }}</div>
+                                <div class="text-slate-500 text-xs">No. ID: {{ $result->patient->identity ?? 'N/A' }}</div>
+                            </td>
+                             <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="font-semibold text-slate-800 uppercase">{{ $result->type }} - {{ $result->no_letters ?? 'N/A' }}</div>
+                                <div class="text-slate-500 text-xs">Tgl: {{ \Carbon\Carbon::parse($result->date)->format('d M Y') }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-slate-600">
+                                {{ $result->doctor->user->name ?? '-' }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                @if($result->document_name)
+                                    <span class="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-full">
+                                        <span class="h-1.5 w-1.5 rounded-full bg-blue-500"></span> Selesai
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-amber-700 bg-amber-100 rounded-full">
+                                         <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span> Draft
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                               <div x-data="{ open: false }" class="relative inline-block text-left">
+                                    <button @click="open = !open" class="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
+                                    </button>
+                                    <div x-show="open" @click.away="open = false" x-cloak x-transition class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
+                                        <div class="py-1" role="menu">
+                                            @if(in_array($result->type, ['mc', 'skb']) && $result->document_name)
+                                                @php
+                                                    $previewRoute = $result->type === 'mc'
+                                                        ? route('outlet.results.mc.preview', Crypt::encrypt($result->id))
+                                                        : route('outlet.results.skb.preview', Crypt::encrypt($result->id));
+                                                @endphp
+                                                <a href="{{ $previewRoute }}" target="_blank" class="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100" role="menuitem">
+                                                    <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                                    <span>Lihat Preview</span>
+                                                </a>
+                                                 <a href="{{ route('outlet.results.download', Crypt::encrypt($result->id)) }}" target="_blank" class="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100" role="menuitem">
+                                                     <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                                                    <span>Download</span>
+                                                </a>
+                                            @endif
+                                            {{-- Tombol Edit ditempatkan di sini --}}
+                                            <a href="#" class="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100" role="menuitem">
+                                               <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>
+                                                <span>Edit</span>
+                                            </a>
+                                            <div class="border-t border-slate-200 my-1"></div>
+                                            <form method="POST" action="{{ route('outlet.results.' . $result->type . '.delete', $result->id) }}" onsubmit="return confirm('Hapus surat ini?')" class="w-full">
+                                                @csrf @method('DELETE')
+                                                <button type="submit" class="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50" role="menuitem">
+                                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                                                    <span>Hapus</span>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="px-6 py-12 text-center text-slate-500">
+                                <p class="font-semibold">Belum ada surat yang dibuat.</p>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
+    
+    @if ($results->hasPages())
+        <div class="mt-6">
+            {{ $results->appends(request()->query())->links() }}
+        </div>
+    @endif
 </div>
 @endsection

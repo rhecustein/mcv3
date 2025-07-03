@@ -236,7 +236,7 @@
             <i>{{ $result->doctor?->user?->name ?? $result->doctor?->name ?? '-' }}</i>
         </h4>
         <h5 style="margin-top: 5px;font-weight: lighter;text-align:left;position:absolute;">
-            <small>SIP</small>: {{ $result->doctor->lisense_number }}</h5>
+            <small></small>: {{ $result->doctor->lisense_number }}</h5>
     </table>
     
     <div style="margin-top:-130px;margin-left:530px;position:absolute;z-index:100;">

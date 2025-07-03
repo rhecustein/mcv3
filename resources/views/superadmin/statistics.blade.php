@@ -1,166 +1,176 @@
-@extends('layouts.app')
+@extends('layouts.app', ['header' => 'Statistik & Distribusi'])
 
 @section('content')
-<div class="p-6 space-y-6">
-    <div class="flex items-center justify-between">
-        <h1 class="text-3xl font-bold text-gray-800">📍 Statistik Outlet & Distribusi Riau</h1>
-        <a href="{{ route('statistics.leaderboard') }}"
-           class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition">
-            🏆 Leaderboard Realtime
-        </a>
+<div class="space-y-6">
+
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800">Statistik Outlet & Distribusi</h1>
+            <p class="mt-1 text-sm text-slate-500">Analisis performa outlet dan sebaran geografis penerbitan surat.</p>
+        </div>
+        <div class="flex items-center gap-2 p-1 bg-slate-100 border border-slate-200 rounded-lg">
+            @php
+                $currentPeriod = request('period', 'all_time');
+                $periods = [
+                    'today' => 'Hari Ini',
+                    'last_7_days' => '7 Hari',
+                    'this_month' => 'Bulan Ini',
+                    'all_time' => 'Semua Waktu',
+                ];
+            @endphp
+            @foreach($periods as $key => $label)
+                <a href="{{ route('statistics.index', ['period' => $key]) }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-200 {{ $currentPeriod === $key ? 'bg-white shadow text-blue-600' : 'text-slate-500 hover:text-slate-800' }}">
+                    {{ $label }}
+                </a>
+            @endforeach
+        </div>
     </div>
 
-    <!-- Rank dan Peta Penerbitan -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- 🏅 Rank Outlet -->
-        <div class="bg-white rounded-xl shadow p-6">
-            <h2 class="text-xl font-semibold text-gray-700 mb-4">🏅 10 Besar Outlet Penerbit Surat</h2>
-            <div class="space-y-3">
-                @foreach ($outletRanks as $index => $outlet)
-                    @php
-                        $colors = [
-                            'bg-green-100 text-green-800 border-green-300',
-                            'bg-lime-100 text-lime-800 border-lime-300',
-                            'bg-emerald-100 text-emerald-800 border-emerald-300',
-                            'bg-yellow-100 text-yellow-800 border-yellow-300',
-                            'bg-orange-100 text-orange-800 border-orange-300',
-                            'bg-red-100 text-red-800 border-red-300',
-                            'bg-pink-100 text-pink-800 border-pink-300',
-                            'bg-purple-100 text-purple-800 border-purple-300',
-                            'bg-indigo-100 text-indigo-800 border-indigo-300',
-                            'bg-blue-100 text-blue-800 border-blue-300'
-                        ];
-                        $style = $colors[$index] ?? 'bg-gray-100 text-gray-800 border-gray-300';
-                    @endphp
-                    <div class="flex items-center justify-between border rounded px-4 py-2 {{ $style }}">
-                        <span class="font-medium">#{{ $index + 1 }} {{ $outlet->name }}</span>
-                        <span class="text-sm">{{ $outlet->total }} surat</span>
-                    </div>
-                @endforeach
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-xl shadow-md border border-slate-200 p-6">
+            <h2 class="text-xl font-semibold text-slate-800 mb-4">🏆 Papan Peringkat Outlet Teratas</h2>
+            <ol class="space-y-3">
+                @forelse ($outletRanks as $index => $outlet)
+                    <li class="flex items-center gap-4 p-3 rounded-lg transition-colors hover:bg-slate-50">
+                        @php
+                            $rank = $index + 1;
+                            $rankColor = 'text-slate-500';
+                            $rankIcon = "#{$rank}";
+                            if ($rank == 1) { $rankColor = 'text-amber-400'; $rankIcon = '🥇'; }
+                            if ($rank == 2) { $rankColor = 'text-slate-400'; $rankIcon = '🥈'; }
+                            if ($rank == 3) { $rankColor = 'text-amber-600'; $rankIcon = '🥉'; }
+                        @endphp
+                        <div class="text-lg font-bold w-8 text-center {{ $rankColor }}">{{ $rankIcon }}</div>
+                        <div class="flex-1">
+                            <div class="font-semibold text-slate-800">{{ $outlet->name }}</div>
+                            <div class="text-xs text-slate-500">{{ $outlet->city ?? 'Lokasi tidak diketahui' }}</div>
+                        </div>
+                        <div class="text-lg font-bold text-blue-600">{{ number_format($outlet->total) }} <span class="text-sm font-medium text-slate-500">surat</span></div>
+                    </li>
+                @empty
+                    <p class="text-center text-slate-500 py-8">Tidak ada data peringkat untuk ditampilkan.</p>
+                @endforelse
+            </ol>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-md border border-slate-200 p-6">
+            <h2 class="text-xl font-semibold text-slate-800 mb-4">📍 Peta Sebaran Penerbitan Surat</h2>
+            <div id="mapRiauSurat" class="w-full h-96 rounded-lg border border-slate-200"></div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md border border-slate-200 p-6">
+        <h2 class="text-xl font-semibold text-slate-800 mb-4">📊 Demografi Surat Berdasarkan Kota</h2>
+         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+             <div class="h-80">
+                <canvas id="cityDemographicChart"></canvas>
             </div>
-        </div>
-
-        <!-- 🗘️ Lokasi Penerbitan -->
-        <div class="bg-white rounded-xl shadow p-6">
-            <h2 class="text-xl font-semibold text-gray-700 mb-4">🗘️ Lokasi Penerbitan Surat</h2>
-            <div id="mapRiauSurat" class="w-full h-96 rounded"></div>
-        </div>
-    </div>
-
-    <!-- 🔐 Lokasi Login -->
-    <div class="bg-white rounded-xl shadow p-6">
-        <div class="flex justify-between items-center mb-2">
-            <h2 class="text-xl font-semibold text-gray-700">🔐 Lokasi Login MCV3</h2>
-            <span class="text-sm text-gray-600">Total sesi login: 
-                <strong class="text-blue-700">{{ $sessionLogins->count() }}</strong>
-            </span>
-        </div>
-        <div id="mapRiauLogin" class="w-full h-96 rounded"></div>
-    </div>
-
-    <!-- 📊 Statistik Demografi -->
-    <div class="bg-white rounded-xl shadow p-6">
-        <h2 class="text-xl font-semibold text-gray-700 mb-4">🏣️ Demografi Surat Berdasarkan Kota (Riau)</h2>
-        <div class="text-sm text-gray-500 mb-4">
-            Total kota: <span class="font-semibold text-gray-700">{{ $cityLabels->count() }}</span><br>
-            Kota terbanyak: <span class="font-semibold text-green-700">{{ $maxCity->created_city ?? '—'}}</span> ({{ $maxCity->total ?? '—' }} surat)<br>
-            Kota tersedikit: <span class="font-semibold text-red-700">{{ $minCity->created_city ?? '—'}}</span> ({{ $minCity->total ?? '—'}} surat)
-        </div>
-        <canvas id="cityDemographicChart" class="w-full h-64"></canvas>
+            <div class="text-sm">
+                <p class="font-semibold text-slate-700 mb-2">Ringkasan Data:</p>
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-500">Total Kota/Kab.</span>
+                        <span class="font-bold text-slate-800">{{ $cityLabels->count() }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-500">Kota Tertinggi</span>
+                        <span class="font-bold text-green-600">{{ $maxCity->created_city ?? '—' }} ({{ number_format($maxCity->total ?? 0) }})</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-500">Kota Terendah</span>
+                        <span class="font-bold text-red-600">{{ $minCity->created_city ?? '—' }} ({{ number_format($minCity->total ?? 0) }})</span>
+                    </div>
+                </div>
+            </div>
+         </div>
     </div>
 </div>
 @endsection
 
 @push('styles')
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+{{-- Gunakan Peta & Cluster versi CDN --}}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 <style>
-.marker-wave {
-    position: relative;
-    width: 14px;
-    height: 14px;
-    background: #3b82f6;
-    border-radius: 50%;
-    box-shadow: 0 0 0 rgba(59, 130, 246, 0.4);
-    animation: pulse 2s infinite;
-}
-@keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
-    70% { box-shadow: 0 0 0 12px rgba(59, 130, 246, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
-}
+    /* [PENINGKATAN] Kustomisasi Popup Peta untuk Light Mode */
+    .leaflet-popup-content-wrapper {
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .leaflet-popup-tip-container {
+        display: none;
+    }
+    .leaflet-popup-content {
+        margin: 12px;
+        font-size: 14px;
+        color: #334155; /* slate-700 */
+    }
+    .leaflet-popup-content strong {
+        color: #1e293b; /* slate-800 */
+    }
 </style>
 @endpush
 
 @push('scripts')
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 <script>
-const sessionLogins = @json($sessionLogins);
+document.addEventListener('DOMContentLoaded', function() {
+    // [PENINGKATAN] Menggunakan tema peta "Positron" dari CartoDB untuk light mode
+    const mapTileUrl = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+    const mapAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+    
+    // Map Sebaran Surat
+    const mapSurat = L.map('mapRiauSurat').setView([0.5104, 101.4383], 7);
+    L.tileLayer(mapTileUrl, { attribution: mapAttribution }).addTo(mapSurat);
+    
+    const suratCluster = L.markerClusterGroup();
+    const resultCoordinates = @json($resultCoordinates);
 
-// Map Surat
-const mapRiauSurat = L.map('mapRiauSurat').setView([0.5104, 101.4383], 7);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
-}).addTo(mapRiauSurat);
-@foreach ($resultCoordinates as $result)
-    @if($result->created_latitude && $result->created_longitude)
-        L.marker([{{ $result->created_latitude }}, {{ $result->created_longitude }}])
-            .addTo(mapRiauSurat)
-            .bindPopup("<strong>{{ $result->outlet_name }}</strong><br>{{ $result->created_city }}");
-    @endif
-@endforeach
-
-// Map Login
-const mapRiauLogin = L.map('mapRiauLogin').setView([0.5104, 101.4383], 7);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
-}).addTo(mapRiauLogin);
-const loginCluster = L.markerClusterGroup();
-const ipGrouped = {};
-sessionLogins.forEach(login => {
-    if (!login.latitude || !login.longitude || !login.ip_address) return;
-    if (!ipGrouped[login.ip_address]) ipGrouped[login.ip_address] = [];
-    ipGrouped[login.ip_address].push(login);
-});
-Object.entries(ipGrouped).forEach(([ip, logins]) => {
-    const first = logins[0];
-    const users = logins.map(l => l.user?.name || 'Anonim');
-    const uniqueUsers = [...new Set(users)];
-    const popup = `
-        <strong>${first.city ?? 'Tidak diketahui'}</strong><br>
-        IP: ${ip}<br>
-        Pengguna: <ul class="list-disc pl-4 text-sm text-gray-700">
-        ${uniqueUsers.map(u => `<li>${u}</li>`).join('')}
-        </ul>
-        Login: ${new Date(first.logged_in_at).toLocaleString('id-ID')}
-    `;
-    const customIcon = L.divIcon({ className: 'marker-wave', iconSize: [14, 14] });
-    const marker = L.marker([first.latitude, first.longitude], { icon: customIcon }).bindPopup(popup);
-    loginCluster.addLayer(marker);
-});
-mapRiauLogin.addLayer(loginCluster);
-
-// Chart Kota
-const cityCtx = document.getElementById('cityDemographicChart').getContext('2d');
-new Chart(cityCtx, {
-    type: 'bar',
-    data: {
-        labels: @json($cityLabels),
-        datasets: [{
-            label: 'Jumlah Surat',
-            data: @json($cityData),
-            backgroundColor: 'rgba(59, 130, 246, 0.7)'
-        }]
-    },
-    options: {
-        responsive: true,
-        scales: {
-            y: { beginAtZero: true, ticks: { stepSize: 1 } }
+    resultCoordinates.forEach(result => {
+        if(result.created_latitude && result.created_longitude) {
+            const popupContent = `<strong>${result.outlet_name}</strong><br>${result.created_city}`;
+            const marker = L.marker([result.created_latitude, result.created_longitude]).bindPopup(popupContent);
+            suratCluster.addLayer(marker);
         }
-    }
+    });
+    mapSurat.addLayer(suratCluster);
+
+    // Konfigurasi Chart.js untuk Light Mode
+    Chart.defaults.color = '#64748b'; // slate-500
+    Chart.defaults.borderColor = '#e2e8f0'; // slate-200
+    Chart.defaults.font.family = "'Inter', sans-serif";
+
+    // Chart Demografi Kota
+    const cityCtx = document.getElementById('cityDemographicChart').getContext('2d');
+    new Chart(cityCtx, {
+        type: 'bar',
+        data: {
+            labels: @json($cityLabels),
+            datasets: [{
+                label: 'Jumlah Surat',
+                data: @json($cityData),
+                backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                borderColor: 'rgba(59, 130, 246, 1)',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            }
+        }
+    });
 });
 </script>
 @endpush

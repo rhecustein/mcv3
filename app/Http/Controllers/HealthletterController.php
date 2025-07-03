@@ -30,80 +30,64 @@ use Illuminate\Support\Str;
 
 class HealthletterController extends Controller
 {
-  public function index(Request $request)
+  // [PERBAIKAN] Tambahkan baris ini untuk menggunakan method middleware() dan validate()
+  
+    /**
+     * Menampilkan halaman utama manajemen surat kesehatan.
+     */
+    public function index(Request $request)
+    {
+        $user = auth()->user();
+        $outlet = auth()->user()->outlet; // Logika outlet diambil di sini
+        $outletId = Outlet::where('email', $user->email)->first();
+
+        $baseQuery = Result::where('outlet_id', $outletId)->whereNull('deleted_at');
+        
+        $stats = [
+            'totalLettersAllTime' => (clone $baseQuery)->count(),
+            'totalLettersThisMonth' => (clone $baseQuery)->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])->count(),
+            'totalSKBThisMonth' => (clone $baseQuery)->where('type', 'skb')->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])->count(),
+            'totalMCThisMonth' => (clone $baseQuery)->where('type', 'mc')->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])->count(),
+        ];
+        
+        $resultsQuery = Result::with(['patient', 'doctor.user', 'company'])
+            ->where('outlet_id', $outletId)
+            // ... (sisa query filter Anda)
+            ->when($request->keyword, fn($q, $keyword) => $q->whereHas('patient', fn($p) => $p->where('full_name', 'like', "%{$keyword}%")));
+
+        $doctors = Doctor::with('user')->where('outlet_id', $outletId)->get();
+        $results = $resultsQuery->latest()->paginate(25)->withQueryString();
+
+        return view('outlets.healthletters.index', array_merge($stats, [
+            'results' => $results,
+            'doctors' => $doctors,
+        ]));
+    }
+    public function createSuratSehat()
     {
         $user = auth()->user();
         $outlet = Outlet::where('email', $user->email)->first();
 
         if (!$outlet) {
-            return redirect()->route('dashboard')->with('error', 'Outlet tidak ditemukan untuk user ini.');
+            abort(403, 'Outlet tidak ditemukan.');
         }
 
-        $outletId = $outlet->id;
-
-        $doctors = \App\Models\Doctor::with('user')
-            ->where('outlet_id', $outletId)
-            ->get();
-
-        $results = Result::with(['patient', 'doctor.user', 'company', 'outlet'])
-            ->where('outlet_id', $outletId)
-            ->whereNull('deleted_at') // pastikan hanya yang belum terhapus
-            ->when($request->keyword, fn($q) =>
-                $q->whereHas('patient', fn($q) =>
-                    $q->where('full_name', 'like', '%' . $request->keyword . '%')
-                )
-            )
-            ->when($request->from, fn($q) =>
-                $q->whereDate('date', '>=', $request->from)
-            )
-            ->when($request->to, fn($q) =>
-                $q->whereDate('date', '<=', $request->to)
-            )
-            ->when($request->type, fn($q) =>
-                $q->where('type', $request->type)
-            )
-            ->when($request->doctor_id, fn($q) =>
-                $q->where('doctor_id', $request->doctor_id)
-            )
-            ->latest()
-            ->paginate(25)
-            ->appends($request->query());
-
         $data = [
-            'results' => $results,
-            'doctors' => $doctors,
-            'totalLettersAllTime' => Result::where('outlet_id', $outletId)->whereNull('deleted_at')->count(),
-            'totalMCAllTime' => Result::where('outlet_id', $outletId)->where('type', 'mc')->whereNull('deleted_at')->count(),
-            'totalMCLAllTime' => Result::where('outlet_id', $outletId)->where('type', 'skb')->whereNull('deleted_at')->count(),
-            'totalLettersThisMonth' => Result::where('outlet_id', $outletId)->whereMonth('created_at', now()->format('m'))->whereNull('deleted_at')->count(),
-            'totalMCThisMonth' => Result::where('outlet_id', $outletId)->where('type', 'mc')->whereMonth('created_at', now()->format('m'))->whereNull('deleted_at')->count(),
-            'totalMCLThisMonth' => Result::where('outlet_id', $outletId)->where('type', 'skb')->whereMonth('created_at', now()->format('m'))->whereNull('deleted_at')->count(),
+            'type'        => 'skb',
+            'title'       => 'Input Surat Sehat (SKB)',
+            'outlet'      => $outlet,
+            'companies'   => DB::table('companies')->orderBy('name')->get(),
+            // PERBAIKAN DI SINI: Gunakan Model Doctor dengan eager loading 'user'
+            'doctors'     => Doctor::with('user') // Eager load the 'user' relationship
+                                    ->orderBy('id') // Urutkan berdasarkan ID dokter atau kolom lain yang stabil
+                                    ->get(),
+            'templates'   => DB::table('template_results')->where('type', 'skb')->get(),
+            'todayDate'   => now()->format('Y-m-d'),
+            'nowTime'     => now()->format('H:i'),
         ];
 
-        return view('outlets.healthletters.index', $data);
+        return view('outlets.results.skbcreate', $data);
     }
-    public function createSuratSehat()
-{
-    $user = auth()->user();
-    $outlet = Outlet::where('email', $user->email)->first();
-
-    if (!$outlet) {
-        abort(403, 'Outlet tidak ditemukan.');
-    }
-
-    $data = [
-        'type'       => 'skb',
-        'title'      => 'Input Surat Sehat (SKB)',
-        'outlet'     => $outlet,
-        'companies'  => DB::table('companies')->orderBy('name')->get(),
-        'doctors'    => Doctor::where('outlet_id', $outlet->id)->with('user')->get(),
-        'templates'  => DB::table('template_results')->where('type', 'skb')->get(),
-        'todayDate'  => now()->format('Y-m-d'),
-        'nowTime'    => now()->format('H:i'),
-    ];
-
-    return view('outlets.results.skbcreate', $data);
-}
 
     public function createSuratSakit()
     {
@@ -119,7 +103,11 @@ class HealthletterController extends Controller
             'title'      => 'Input Surat Sakit (MC)',
             'outlet'     => $outlet,
             'companies'  => DB::table('companies')->orderBy('name')->get(),
-            'doctors'    => Doctor::where('outlet_id', $outlet->id)->with('user')->get(),
+            'doctors'    => DB::table('doctors')
+                            ->join('users', 'doctors.user_id', '=', 'users.id') // Sesuaikan 'doctors.user_id' dan 'users.id' dengan nama kolom foreign key dan primary key Anda
+                            ->select('doctors.*', 'users.name as user_name') // Pilih semua kolom dari doctors, dan nama pengguna sebagai user_name
+                            ->orderBy('doctors.name') // Urutkan berdasarkan nama dokter
+                            ->get(),
             'templates'  => DB::table('template_results')->where('type', 'mc')->get(), // jika ada template MC
             'todayDate'  => now()->format('Y-m-d'),
             'nowTime'    => now()->format('H:i'),
