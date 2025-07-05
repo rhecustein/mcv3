@@ -141,13 +141,16 @@
                             <input type="hidden" name="icd_master_id" id="icd_master_id" value="{{ old('icd_master_id') }}">
                             <div id="icd_suggestions" class="absolute z-50 bg-white border mt-1 rounded-md shadow-lg max-h-60 overflow-y-auto w-full" x-show="icdSuggestionsOpen" x-cloak></div>
                         </div>
+                        <div id="selected_icd_info" class="mt-2 p-2 text-sm bg-slate-50 border border-slate-200 rounded-md @if(!old('icd_master_id')) hidden @endif">
+                            @if(old('icd_master_id') && old('diagnosis_name'))
+                                <p><span class="font-semibold">Kode:</span> <span id="icd_code_display">{{ explode(' - ', old('diagnosis_name'))[0] ?? '' }}</span></p>
+                                <p><span class="font-semibold">Deskripsi:</span> <span id="icd_title_display">{{ explode(' - ', old('diagnosis_name'))[1] ?? old('diagnosis_name') }}</span></p>
+                            @else
+                                <p>Pilih ICD-10 untuk melihat detailnya.</p>
+                            @endif
+                        </div>
                         @error('icd_master_id')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
                         @error('diagnosis_name')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
-                    </div>
-                    <div>
-                        <label for="doctor_name" class="block text-sm font-medium leading-6 text-slate-700 mb-1.5">Nama Dokter (Opsional)</label>
-                        <input type="text" name="doctor_name" id="doctor_name" value="{{ old('doctor_name') }}" class="w-full rounded-md border-slate-300 shadow-sm">
-                        <p class="text-xs text-slate-500 mt-1">Isi jika dokter tidak terdaftar pada daftar pilihan di langkah 3.</p>
                     </div>
                     <div class="md:col-span-2">
                         <label for="notes" class="block text-sm font-medium leading-6 text-slate-700 mb-1.5">Catatan/Keterangan Tambahan (Opsional)</label>
@@ -163,10 +166,9 @@
                     <select name="doctor_id" id="doctor_id" class="w-full rounded-md border-slate-300 shadow-sm">
                         <option value="">~ Pilih Dokter ~</option>
                         @foreach ($doctors as $doctor)
-                            <option value="{{ $doctor->id }}" @selected(old('doctor_id') == $doctor->id)>{{ $doctor->user_name }}</option>
+                            <option value="{{ $doctor->id }}" @selected(old('doctor_id') == $doctor->id)>{{ $doctor->user->name }}</option>
                         @endforeach
                     </select>
-                    @error('doctor_id')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label class="block text-sm font-medium leading-6 text-slate-700 mb-2">Opsi Notifikasi (Opsional)</label>
@@ -261,7 +263,7 @@ document.addEventListener('alpine:init', () => {
 
         init() {
             // Restore currentStep if there are validation errors
-            @if ($errors->hasAny(['patient_name', 'dob', 'gender']))
+            @if ($errors->hasAny(['patient_name', 'dob', 'gender', 'icd_master_id', 'diagnosis_name']))
                 this.currentStep = 2;
                 this.maxStep = 2;
             @elseif ($errors->hasAny(['doctor_id', 'whatsapp_number', 'email_address']))
@@ -308,26 +310,49 @@ document.addEventListener('alpine:init', () => {
             inputs.forEach(input => {
                 // For simplicity, we'll only check for 'required' here.
                 // More complex validation should be handled server-side.
-                if (input.hasAttribute('required') && !input.value.trim()) {
-                    isValid = false;
-                    // You might want to add visual feedback here (e.g., add a red border)
-                }
+                // Removed general required check for inputs here to rely on specific step checks
+                // and Laravel's server-side validation.
             });
 
             // Specific validation for Step 1
             if (step === 1) {
                 const patientName = document.getElementById('patient_name');
+                const companyName = document.getElementById('company_search');
+                const date = document.getElementById('date');
+                const time = document.getElementById('time');
+
                 if (!patientName.value.trim()) {
                     isValid = false;
                     patientName.classList.add('border-red-500');
                 } else {
                     patientName.classList.remove('border-red-500');
                 }
+                if (!companyName.value.trim()) { // Assuming company is required
+                    isValid = false;
+                    companyName.classList.add('border-red-500');
+                } else {
+                    companyName.classList.remove('border-red-500');
+                }
+                if (!date.value.trim()) { // Assuming date is required
+                    isValid = false;
+                    date.classList.add('border-red-500');
+                } else {
+                    date.classList.remove('border-red-500');
+                }
+                if (!time.value.trim()) { // Assuming time is required
+                    isValid = false;
+                    time.classList.add('border-red-500');
+                } else {
+                    time.classList.remove('border-red-500');
+                }
             }
-            // Specific validation for Step 2 (if any client-side required)
+            // Specific validation for Step 2
             if (step === 2) {
                 const dob = document.getElementById('dob');
                 const gender = document.getElementById('gender');
+                const icdMasterId = document.getElementById('icd_master_id');
+                const icdSearch = document.getElementById('icd_search');
+
                 if (!dob.value.trim()) {
                     isValid = false;
                     dob.classList.add('border-red-500');
@@ -340,8 +365,38 @@ document.addEventListener('alpine:init', () => {
                 } else {
                     gender.classList.remove('border-red-500');
                 }
-                // If the 'doctor_name' is filled, then 'doctor_id' isn't strictly required here
-                // If 'icd_search' is required, add validation here
+                if (!icdMasterId.value.trim() && icdSearch.value.trim()) { // ICD input has text but no ID means not selected
+                    isValid = false;
+                    icdSearch.classList.add('border-red-500');
+                } else {
+                    icdSearch.classList.remove('border-red-500');
+                }
+                // If icd_search is empty, it's optional
+                if (icdSearch.value.trim() && !icdMasterId.value.trim()) {
+                    isValid = false;
+                    icdSearch.classList.add('border-red-500');
+                } else {
+                    icdSearch.classList.remove('border-red-500');
+                }
+            }
+            // Specific validation for Step 3
+            if (step === 3) {
+                const doctorId = document.getElementById('doctor_id');
+                const doctorSearch = document.getElementById('doctor_search');
+
+                if (!doctorId.value.trim() && doctorSearch.value.trim()) { // Doctor input has text but no ID means not selected
+                    isValid = false;
+                    doctorSearch.classList.add('border-red-500');
+                } else {
+                    doctorSearch.classList.remove('border-red-500');
+                }
+                // If doctor_search is empty, it's optional
+                if (doctorSearch.value.trim() && !doctorId.value.trim()) {
+                    isValid = false;
+                    doctorSearch.classList.add('border-red-500');
+                } else {
+                    doctorSearch.classList.remove('border-red-500');
+                }
             }
 
             return isValid;
@@ -395,9 +450,8 @@ document.addEventListener('DOMContentLoaded', function () {
                             div.onclick = () => selectPatient(item);
                             suggestionsBox.appendChild(div);
                         });
-                        // Alpine.js x-show handles visibility
                     } else {
-                        // Alpine.js x-show handles visibility
+                        // No suggestions, Alpine.js x-show handles visibility
                     }
                 });
         } else {
@@ -436,6 +490,7 @@ document.addEventListener('DOMContentLoaded', function () {
         isNewPatientCheckbox.checked = false;
         isNewPatientCheckbox.disabled = true;
         suggestionsBox.innerHTML = ''; // Clear and hide suggestions
+        patientInput.focus(); // Keep focus on the input after selection
     }
 
     function clearPatientDetails() {
@@ -470,9 +525,8 @@ document.addEventListener('DOMContentLoaded', function () {
                             div.onclick = () => selectCompany(item);
                             companySuggestions.appendChild(div);
                         });
-                        // Alpine.js x-show handles visibility
                     } else {
-                        // Alpine.js x-show handles visibility
+                        // No suggestions, Alpine.js x-show handles visibility
                     }
                 });
         } else {
@@ -491,18 +545,28 @@ document.addEventListener('DOMContentLoaded', function () {
         companyInput.value = company.name;
         companyIdInput.value = company.id;
         companySuggestions.innerHTML = ''; // Clear and hide suggestions
+        companyInput.focus(); // Keep focus on the input after selection
     }
 
     // ============ ICD-10 LIVE SEARCH ============
     const icdInput = document.getElementById('icd_search');
     const icdSuggestions = document.getElementById('icd_suggestions');
     const icdMasterId = document.getElementById('icd_master_id');
+    const selectedIcdInfoDiv = document.getElementById('selected_icd_info');
+    const icdCodeDisplay = document.getElementById('icd_code_display');
+    const icdTitleDisplay = document.getElementById('icd_title_display');
 
-    // Restore old ICD data if validation failed
+    // Restore old ICD data if validation failed and display details
     @if(old('icd_master_id') && old('diagnosis_name'))
         icdInput.value = "{{ old('diagnosis_name') }}";
         icdMasterId.value = "{{ old('icd_master_id') }}";
+        selectedIcdInfoDiv.classList.remove('hidden');
+        icdCodeDisplay.textContent = "{{ explode(' - ', old('diagnosis_name'))[0] ?? '' }}";
+        icdTitleDisplay.textContent = "{{ explode(' - ', old('diagnosis_name'))[1] ?? old('diagnosis_name') }}";
+    @else
+        selectedIcdInfoDiv.classList.add('hidden'); // Ensure it's hidden if no old value
     @endif
+
 
     const fetchIcdSuggestions = debounce(function (query) {
         if (query.length >= 2) {
@@ -518,10 +582,13 @@ document.addEventListener('DOMContentLoaded', function () {
                             div.onclick = () => selectIcd(item);
                             icdSuggestions.appendChild(div);
                         });
-                        // Alpine.js x-show handles visibility
                     } else {
                         // Alpine.js x-show handles visibility
                     }
+                })
+                .catch(error => {
+                    console.error('Error fetching ICD suggestions:', error);
+                    icdSuggestions.innerHTML = '<div class="px-3 py-2 text-red-500">Gagal memuat saran ICD.</div>';
                 });
         } else {
             icdSuggestions.innerHTML = '';
@@ -532,14 +599,107 @@ document.addEventListener('DOMContentLoaded', function () {
     icdInput?.addEventListener('input', function () {
         const query = this.value.trim();
         icdMasterId.value = ''; // Clear icd_master_id if input changes
+        selectedIcdInfoDiv.classList.add('hidden'); // Hide details when input changes
         fetchIcdSuggestions(query);
     });
 
     function selectIcd(item) {
         icdInput.value = `${item.code} - ${item.title}`;
         icdMasterId.value = item.id;
+
+        // Display full ICD info
+        icdCodeDisplay.textContent = item.code;
+        icdTitleDisplay.textContent = item.title;
+        selectedIcdInfoDiv.classList.remove('hidden');
+
         icdSuggestions.innerHTML = ''; // Clear and hide suggestions
+        icdInput.focus(); // Keep focus on the input after selection
     }
+
+    // ============ DOCTOR LIVE SEARCH ============
+    const doctorInput = document.getElementById('doctor_search');
+    const doctorIdInput = document.getElementById('doctor_id');
+    const doctorSuggestions = document.getElementById('doctor_suggestions');
+    const selectedDoctorInfoDiv = document.getElementById('selected_doctor_info');
+    const doctorNameDisplayInfo = document.getElementById('doctor_name_display_info');
+    const doctorSpecializationDisplayInfo = document.getElementById('doctor_specialization_display_info');
+    const doctorLicenseDisplayInfo = document.getElementById('doctor_license_display_info');
+
+    // Restore old doctor data if validation failed and display details
+    @if(old('doctor_id') && old('doctor_name_display'))
+        doctorInput.value = "{{ old('doctor_name_display') }}";
+        doctorIdInput.value = "{{ old('doctor_id') }}";
+        // Fetch full doctor details to populate specialization and license
+        fetch(`/outlet/doctors/live-search?id={{ old('doctor_id') }}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.length > 0) {
+                    selectDoctor(data[0]); // Use selectDoctor to populate all fields
+                }
+            })
+            .catch(error => console.error('Error fetching old doctor details:', error));
+    @else
+        selectedDoctorInfoDiv.classList.add('hidden'); // Ensure it's hidden if no old value
+    @endif
+
+    const fetchDoctorSuggestions = debounce(function (query) {
+        if (query.length >= 2) {
+            fetch(`/outlet/doctors/live-search?q=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(data => {
+                    doctorSuggestions.innerHTML = '';
+                    if (data.length > 0) {
+                        data.forEach(item => {
+                            const div = document.createElement('div');
+                            div.className = 'px-3 py-2 hover:bg-blue-100 cursor-pointer border-b text-sm';
+                            // Assuming 'user_name' is returned from your backend
+                            div.innerHTML = `<strong>${item.user_name}</strong> - ${item.specialization || 'Umum'} ${item.license_number ? `(${item.license_number})` : ''}`;
+                            div.onclick = () => selectDoctor(item);
+                            doctorSuggestions.appendChild(div);
+                        });
+                    } else {
+                        // Alpine.js x-show handles visibility
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching doctor suggestions:', error);
+                    doctorSuggestions.innerHTML = '<div class="px-3 py-2 text-red-500">Gagal memuat saran dokter.</div>';
+                });
+        } else {
+            doctorSuggestions.innerHTML = '';
+            // Alpine.js x-show handles visibility
+        }
+    }, 300);
+
+    doctorInput?.addEventListener('input', function () {
+        const query = this.value.trim();
+        doctorIdInput.value = ''; // Clear doctor_id if input changes
+        // Also clear the hidden name that's used for old() display
+        document.querySelector('input[name="doctor_name_display"]').value = '';
+        selectedDoctorInfoDiv.classList.add('hidden'); // Hide details when input changes
+        fetchDoctorSuggestions(query);
+    });
+
+    function selectDoctor(data) {
+        doctorInput.value = data.user_name; // Set display name
+        doctorIdInput.value = data.id;
+
+        // Set the hidden input for old() value persistence
+        const doctorNameDisplayHidden = document.querySelector('input[name="doctor_name_display"]');
+        if (doctorNameDisplayHidden) {
+            doctorNameDisplayHidden.value = data.user_name;
+        }
+
+        // Display full doctor info
+        doctorNameDisplayInfo.textContent = data.user_name;
+        doctorSpecializationDisplayInfo.textContent = data.specialization || 'Umum';
+        doctorLicenseDisplayInfo.textContent = data.license_number || 'Tidak Ada';
+        selectedDoctorInfoDiv.classList.remove('hidden');
+
+        doctorSuggestions.innerHTML = ''; // Clear and hide suggestions
+        doctorInput.focus(); // Keep focus on the input after selection
+    }
+
 
     // ============ NOTIFIKASI ============
     document.getElementById('send_notif_email')?.addEventListener('change', function () {

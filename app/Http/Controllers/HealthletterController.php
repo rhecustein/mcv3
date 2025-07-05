@@ -35,14 +35,21 @@ class HealthletterController extends Controller
     /**
      * Menampilkan halaman utama manajemen surat kesehatan.
      */
-    public function index(Request $request)
+     public function index(Request $request)
     {
+        // [PERBAIKAN] Ambil outlet langsung dari relasi user yang sudah terotentikasi.
         $user = auth()->user();
-        $outlet = auth()->user()->outlet; // Logika outlet diambil di sini
-        $outletId = Outlet::where('email', $user->email)->first();
+        $outlet = Outlet::where('email', $user->email)->first();
 
-        $baseQuery = Result::where('outlet_id', $outletId)->whereNull('deleted_at');
+        // Guard clause untuk memastikan outlet ada.
+        if (!$outlet) {
+            return redirect()->route('dashboard')->with('error', 'Akun Anda tidak terasosiasi dengan outlet manapun.');
+        }
+
+        // --- Data untuk Kartu Statistik ---
+        $baseQuery = Result::where('outlet_id', $outlet->id)->whereNull('deleted_at');
         
+        // [OPTIMASI] Hitung semua statistik dalam satu blok yang rapi.
         $stats = [
             'totalLettersAllTime' => (clone $baseQuery)->count(),
             'totalLettersThisMonth' => (clone $baseQuery)->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])->count(),
@@ -50,14 +57,26 @@ class HealthletterController extends Controller
             'totalMCThisMonth' => (clone $baseQuery)->where('type', 'mc')->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])->count(),
         ];
         
+        // --- Query utama untuk tabel dengan SEMUA filter ---
         $resultsQuery = Result::with(['patient', 'doctor.user', 'company'])
-            ->where('outlet_id', $outletId)
-            // ... (sisa query filter Anda)
-            ->when($request->keyword, fn($q, $keyword) => $q->whereHas('patient', fn($p) => $p->where('full_name', 'like', "%{$keyword}%")));
+            ->where('outlet_id', $outlet->id)
+            ->whereNull('deleted_at')
+            // [PERBAIKAN] Menambahkan kembali semua filter yang dibutuhkan oleh view.
+            ->when($request->keyword, fn($q, $keyword) => 
+                $q->whereHas('patient', fn($p) => $p->where('full_name', 'like', "%{$keyword}%"))
+            )
+            ->when($request->from, fn($q, $from) => $q->whereDate('date', '>=', $from))
+            ->when($request->to, fn($q, $to) => $q->whereDate('date', '<=', $to))
+            ->when($request->filled('type'), fn($q) => $q->where('type', $request->type))
+            ->when($request->filled('doctor_id'), fn($q) => $q->where('doctor_id', $request->doctor_id));
 
-        $doctors = Doctor::with('user')->where('outlet_id', $outletId)->get();
+        // [PERBAIKAN] Ambil dokter HANYA dari outlet yang sedang login.
+        $doctors = Doctor::with('user')->where('outlet_id', $outlet->id)->get();
+        
+        // Lakukan paginasi pada query utama.
         $results = $resultsQuery->latest()->paginate(25)->withQueryString();
 
+        // Kirim semua data yang dibutuhkan ke view.
         return view('outlets.healthletters.index', array_merge($stats, [
             'results' => $results,
             'doctors' => $doctors,

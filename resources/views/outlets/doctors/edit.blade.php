@@ -1,152 +1,186 @@
-@extends('layouts.app')
+@extends('layouts.app', ['header' => 'Edit Data Dokter'])
 
 @section('content')
-<div class="max-w-6xl mx-auto p-6 bg-white rounded-xl shadow space-y-6">
+<div class="max-w-5xl mx-auto">
 
-    <h2 class="text-2xl font-bold text-gray-800">✏️ Edit Data Dokter</h2>
+    <div class="mb-6 text-center">
+        <h1 class="text-3xl font-bold text-slate-800">Edit Profil Dokter</h1>
+        <p class="mt-2 text-base text-slate-500">Perbarui informasi, kredensial, dan aset digital untuk <span class="font-semibold text-blue-600">{{ $doctor->user->name }}</span>.</p>
+    </div>
 
-    <form action="{{ route('outlet.doctors.update', $doctor) }}" method="POST" onsubmit="return captureSignature()">
+    @if ($errors->any())
+        <div class="mb-6 bg-red-50 border border-red-200 text-sm text-red-700 rounded-lg p-4" role="alert">
+            <div class="flex">
+                <div class="flex-shrink-0"><svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" /></svg></div>
+                <div class="ml-3">
+                    <h3 class="font-semibold">Terdapat kesalahan pada input Anda.</h3>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <form action="{{ route('outlet.doctors.update', $doctor) }}" method="POST" enctype="multipart/form-data" onsubmit="return captureSignature()">
         @csrf
         @method('PUT')
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- KIRI -->
-            <div class="space-y-4">
-                <!-- Nama -->
-                <div>
-                    <label for="name" class="block text-sm font-semibold text-gray-700 mb-1">Nama</label>
-                    <input type="text" name="name" id="name" value="{{ old('name', $doctor->user->name) }}"
-                           class="w-full px-3 py-2 border rounded-lg text-sm shadow-sm">
-                    @error('name') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
-                </div>
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm">
+            <div class="p-6 md:p-8">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    
+                    <div class="lg:col-span-1 space-y-6">
+                        <div x-data="imageUploader('{{ $doctor->user->avatar_url }}')">
+                            <label class="block text-sm font-medium leading-6 text-slate-700 mb-1.5">Foto Profil</label>
+                            <div class="mt-2 flex justify-center rounded-lg border border-dashed border-slate-900/25 px-6 py-10 relative" :class="{ 'border-blue-500': isDragging }">
+                                <template x-if="!imageUrl">
+                                    <div class="text-center">
+                                        <svg class="mx-auto h-12 w-12 text-slate-300" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M1.5 6a2.25 2.25 0 012.25-2.25h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0021 18v-1.94l-2.69-2.689a1.5 1.5 0 00-2.12 0l-.88.879.97.97a.75.75 0 11-1.06 1.06l-5.16-5.159a1.5 1.5 0 00-2.12 0L3 16.061zm10.125-7.81a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z" clip-rule="evenodd" /></svg>
+                                        <div class="mt-4 flex text-sm leading-6 text-slate-600">
+                                            <label for="avatar" class="relative cursor-pointer rounded-md bg-white font-semibold text-blue-600 focus-within:outline-none hover:text-blue-500">
+                                                <span>Ganti foto</span>
+                                                <input id="avatar" name="avatar" type="file" class="sr-only" @change="fileChosen">
+                                            </label>
+                                        </div>
+                                    </div>
+                                </template>
+                                <template x-if="imageUrl">
+                                    <div class="relative group">
+                                        <img :src="imageUrl" class="w-32 h-32 rounded-full object-cover ring-2 ring-white shadow">
+                                        <button @click="removeImage" type="button" class="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" /></svg>
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
 
-                <!-- Telepon -->
-                <div>
-                    <label for="phone" class="block text-sm font-semibold text-gray-700 mb-1">Telepon</label>
-                    <input type="text" name="phone" id="phone" value="{{ old('phone', $doctor->user->phone) }}"
-                           class="w-full px-3 py-2 border rounded-lg text-sm shadow-sm">
-                    @error('phone') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
-                </div>
+                        <div>
+                            <label class="block text-sm font-medium leading-6 text-slate-700 mb-1.5">Tanda Tangan Digital</label>
+                            <div class="p-2 border border-slate-200 rounded-lg">
+                                @if($doctor->sign_virtual)
+                                    <p class="text-xs text-slate-500 mb-2">Tanda Tangan Saat Ini:</p>
+                                    <img src="{{ asset('storage/' . $doctor->sign_virtual) }}" alt="Tanda Tangan Tersimpan" class="w-full h-auto bg-slate-50 rounded">
+                                @endif
+                                <p class="text-xs text-slate-500 my-2">{{ $doctor->sign_virtual ? 'Goreskan di bawah untuk mengganti:' : 'Goreskan tanda tangan di bawah:' }}</p>
+                                <canvas id="signature-pad" class="border border-slate-300 rounded-lg w-full h-40"></canvas>
+                                <button type="button" onclick="clearSignature()" class="mt-2 text-xs text-blue-600 hover:underline">Bersihkan</button>
+                            </div>
+                            <input type="hidden" name="signature_image" id="signature_image">
+                        </div>
+                    </div>
 
-                <!-- Gender -->
-                <div>
-                    <label for="gender" class="block text-sm font-semibold text-gray-700 mb-1">Jenis Kelamin</label>
-                    <select name="gender" class="w-full px-3 py-2 border rounded-lg text-sm shadow-sm">
-                        <option value="">-- Pilih --</option>
-                        <option value="male" {{ old('gender', $doctor->gender) == 'L' ? 'selected' : '' }}>Laki-laki</option>
-                        <option value="female" {{ old('gender', $doctor->gender) == 'P' ? 'selected' : '' }}>Perempuan</option>
-                    </select>
-                    @error('gender') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
-                </div>
-
-                <!-- Tanggal Lahir -->
-                <div>
-                    <label for="birth_date" class="block text-sm font-semibold text-gray-700 mb-1">Tanggal Lahir</label>
-                    <input type="date" name="birth_date" value="{{ old('birth_date', $doctor->birth_date) }}"
-                           class="w-full px-3 py-2 border rounded-lg text-sm shadow-sm">
-                    @error('birth_date') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
-                </div>
-
-                <!-- STR / SIP -->
-                <div>
-                    <label for="license_number" class="block text-sm font-semibold text-gray-700 mb-1">No STR / SIP</label>
-                    <input type="text" name="license_number" value="{{ old('license_number', $doctor->license_number) }}"
-                           class="w-full px-3 py-2 border rounded-lg text-sm shadow-sm">
-                    @error('license_number') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+                    <div class="lg:col-span-2 space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                            <div>
+                                <label for="name" class="block text-sm font-medium text-slate-700">Nama Lengkap <span class="text-red-600">*</span></label>
+                                <input type="text" name="name" id="name" value="{{ old('name', $doctor->user->name) }}" required class="mt-1 block w-full rounded-md border-slate-300 shadow-sm">
+                                @error('name') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
+                             <div>
+                                <label for="email" class="block text-sm font-medium text-slate-700">Email (Tidak bisa diubah)</label>
+                                <input type="email" name="email" id="email" value="{{ old('email', $doctor->user->email) }}" readonly disabled class="mt-1 block w-full rounded-md border-slate-300 shadow-sm bg-slate-100 text-slate-500 cursor-not-allowed">
+                            </div>
+                            <div>
+                                <label for="phone" class="block text-sm font-medium text-slate-700">Telepon</label>
+                                <input type="text" name="phone" id="phone" value="{{ old('phone', $doctor->user->phone) }}" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm">
+                            </div>
+                             <div>
+                                <label for="license_number" class="block text-sm font-medium text-slate-700">Nomor STR / SIP</label>
+                                <input type="text" name="license_number" id="license_number" value="{{ old('license_number', $doctor->license_number) }}" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm">
+                            </div>
+                            <div>
+                                <label for="gender" class="block text-sm font-medium text-slate-700">Jenis Kelamin</label>
+                                <select name="gender" id="gender" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm">
+                                    <option value="">-- Pilih --</option>
+                                    <option value="male" @selected(old('gender', $doctor->gender) == 'male')>Laki-laki</option>
+                                    <option value="female" @selected(old('gender', $doctor->gender) == 'female')>Perempuan</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="birth_date" class="block text-sm font-medium text-slate-700">Tanggal Lahir</label>
+                                <input type="date" name="birth_date" id="birth_date" value="{{ old('birth_date', optional($doctor->birth_date)->format('Y-m-d')) }}" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm">
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label for="specialist" class="block text-sm font-medium text-slate-700">Spesialisasi</label>
+                                <input type="text" name="specialist" id="specialist" value="{{ old('specialist', $doctor->specialist) }}" placeholder="Contoh: Dokter Umum" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm">
+                            </div>
+                             <div class="sm:col-span-2">
+                                <label for="education" class="block text-sm font-medium text-slate-700">Pendidikan</label>
+                                <input type="text" name="education" id="education" value="{{ old('education', $doctor->education) }}" placeholder="Contoh: S.Ked - Universitas Indonesia" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm">
+                            </div>
+                             <div class="sm:col-span-2">
+                                <label for="practice_days" class="block text-sm font-medium text-slate-700">Hari Praktik</label>
+                                <input type="text" name="practice_days" id="practice_days" value="{{ old('practice_days', $doctor->practice_days) }}" placeholder="Contoh: Senin - Jumat" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- KANAN -->
-            <div class="space-y-4">
-                <!-- Spesialis -->
-                <div>
-                    <label for="specialist" class="block text-sm font-semibold text-gray-700 mb-1">Spesialis</label>
-                    <input type="text" name="specialist" value="{{ old('specialist', $doctor->specialist) }}"
-                           class="w-full px-3 py-2 border rounded-lg text-sm shadow-sm">
-                </div>
-
-                <!-- Pendidikan -->
-                <div>
-                    <label for="education" class="block text-sm font-semibold text-gray-700 mb-1">Pendidikan</label>
-                    <input type="text" name="education" value="{{ old('education', $doctor->education) }}"
-                           class="w-full px-3 py-2 border rounded-lg text-sm shadow-sm">
-                </div>
-
-                <!-- Hari Praktik -->
-                <div>
-                    <label for="practice_days" class="block text-sm font-semibold text-gray-700 mb-1">Hari Praktik</label>
-                    <input type="text" name="practice_days" value="{{ old('practice_days', $doctor->practice_days) }}"
-                           class="w-full px-3 py-2 border rounded-lg text-sm shadow-sm">
-                </div>
-
-                <!-- Sub-spesialisasi -->
-                <div>
-                    <label for="specialization" class="block text-sm font-semibold text-gray-700 mb-1">Spesialisasi Tambahan</label>
-                    <input type="text" name="specialization" value="{{ old('specialization', $doctor->specialization) }}"
-                           class="w-full px-3 py-2 border rounded-lg text-sm shadow-sm">
-                </div>
-            </div>
-        </div>
-
-        <!-- Signature Lama -->
-        @if($doctor->signature_image)
-            <div class="pt-6">
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Tanda Tangan Saat Ini</label>
-                <img src="{{ asset('storage/' . $doctor->signature_image) }}" alt="Signature"
-                     class="w-64 border border-gray-300 rounded shadow">
-            </div>
-        @endif
-
-        <!-- Signature Baru -->
-        <div class="pt-6">
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Ganti Tanda Tangan (Opsional)</label>
-            <canvas id="signature-pad" class="border border-gray-300 rounded-md bg-gray-50 w-full h-40"></canvas>
-            <div class="flex justify-between items-center mt-2">
-                <button type="button" onclick="clearSignature()"
-                        class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
-                    🧹 Bersihkan
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+                <a href="{{ route('outlet.doctors.index') }}" class="text-sm text-slate-600 hover:text-slate-900 transition hover:underline">
+                    &larr; Kembali ke Daftar Dokter
+                </a>
+                <button type="submit"
+                        class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 transition-all duration-200">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                    <span>Simpan Perubahan</span>
                 </button>
-                <span class="text-xs text-gray-500">Kosongkan jika tidak ingin mengganti</span>
             </div>
-            <input type="hidden" name="signature_image" id="signature_image">
-        </div>
-
-        <!-- QR Code -->
-        @if($doctor->signature_qrcode)
-            <div class="pt-6">
-                <label class="block text-sm font-semibold text-gray-700 mb-1">QR Code Saat Ini</label>
-                <img src="{{ asset('storage/' . $doctor->signature_qrcode) }}" alt="QR Code"
-                     class="w-32 border border-gray-300 rounded shadow">
-            </div>
-        @endif
-
-        <!-- Tombol -->
-        <div class="flex justify-between items-center pt-8">
-            <a href="{{ route('outlet.doctors.index') }}" class="text-sm text-gray-600 hover:underline">← Kembali</a>
-            <button type="submit"
-                    class="px-5 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition">
-                💾 Simpan Perubahan
-            </button>
         </div>
     </form>
 </div>
 
-<!-- SignaturePad JS -->
+@endsection
+
+@push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
 <script>
-    const canvas = document.getElementById('signature-pad');
-    const signaturePad = new SignaturePad(canvas);
-
-    function clearSignature() {
-        signaturePad.clear();
-    }
-
-    function captureSignature() {
-        if (!signaturePad.isEmpty()) {
-            const dataUrl = signaturePad.toDataURL('image/png');
-            document.getElementById('signature_image').value = dataUrl;
+document.addEventListener('alpine:init', () => {
+    // Script untuk preview upload gambar
+    Alpine.data('imageUploader', (initialUrl = '') => ({
+        imageUrl: initialUrl,
+        isDragging: false,
+        fileChosen(event) {
+            this.fileToDataUrl(event.target.files[0]);
+        },
+        fileToDataUrl(file) {
+            if (!file) return;
+            let reader = new FileReader();
+            reader.onload = e => this.imageUrl = e.target.result;
+            reader.readAsDataURL(file);
+        },
+        removeImage() {
+            this.imageUrl = '';
+            document.getElementById('avatar').value = '';
         }
-        return true;
+    }));
+});
+
+// Script untuk Signature Pad
+const canvas = document.getElementById('signature-pad');
+const signaturePad = new SignaturePad(canvas, {
+    backgroundColor: '#fff' // Latar putih untuk canvas
+});
+
+function clearSignature() {
+    signaturePad.clear();
+}
+
+function captureSignature() {
+    if (!signaturePad.isEmpty()) {
+        document.getElementById('signature_image').value = signaturePad.toDataURL('image/png');
     }
+    return true;
+}
+
+// Sesuaikan ukuran canvas saat window di-resize
+window.onresize = function() {
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    canvas.width = canvas.offsetWidth * ratio;
+    canvas.height = canvas.offsetHeight * ratio;
+    canvas.getContext("2d").scale(ratio, ratio);
+    signaturePad.clear(); // Hapus tanda tangan saat resize
+};
+window.dispatchEvent(new Event('resize'));
 </script>
-@endsection
+@endpush
