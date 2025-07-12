@@ -108,28 +108,44 @@ class HealthletterController extends Controller
         return view('outlets.results.skbcreate', $data);
     }
 
+    /**
+     * Menampilkan form untuk membuat Surat Keterangan Sakit (MC).
+     *
+     * @return \Illuminate\View\View
+     */
     public function createSuratSakit()
     {
+        // [OPTIMASI] Ambil outlet langsung dari relasi user yang sudah terotentikasi.
         $user = auth()->user();
         $outlet = Outlet::where('email', $user->email)->first();
 
+        // Jika outlet tidak ditemukan (sebagai pengaman tambahan).
         if (!$outlet) {
-            abort(403, 'Outlet tidak ditemukan.');
+            abort(403, 'Akses ditolak. Akun Anda tidak terhubung ke outlet manapun.');
         }
 
+        // [PENINGKATAN] Mengambil data dengan Eloquent dan memfilter hanya yang relevan.
         $data = [
-            'type'       => 'mc',
-            'title'      => 'Input Surat Sakit (MC)',
-            'outlet'     => $outlet,
-            'companies'  => DB::table('companies')->orderBy('name')->get(),
-            'doctors'    => DB::table('doctors')
-                            ->join('users', 'doctors.user_id', '=', 'users.id') // Sesuaikan 'doctors.user_id' dan 'users.id' dengan nama kolom foreign key dan primary key Anda
-                            ->select('doctors.*', 'users.name as user_name') // Pilih semua kolom dari doctors, dan nama pengguna sebagai user_name
-                            ->orderBy('doctors.name') // Urutkan berdasarkan nama dokter
-                            ->get(),
-            'templates'  => DB::table('template_results')->where('type', 'mc')->get(), // jika ada template MC
-            'todayDate'  => now()->format('Y-m-d'),
-            'nowTime'    => now()->format('H:i'),
+            'type'      => 'mc',
+            'title'     => 'Input Surat Sakit (MC)',
+            'outlet'    => $outlet,
+            
+            // Ambil perusahaan yang aktif saja.
+            'companies' => Company::where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            
+            // [PERBAIKAN] Ambil dokter yang HANYA ada di outlet ini dan statusnya aktif.
+            'doctors'   => Doctor::with('user:id,name') // Eager load hanya kolom yg perlu
+                                ->where('outlet_id', $outlet->id)
+                                ->whereHas('user', fn($q) => $q->where('is_active', true))
+                                ->get()
+                                ->sortBy('user.name'),
+
+            // Gunakan Eloquent Model jika ada (praktik lebih baik).
+            'templates' => DB::table('template_results')->where('type', 'mc')->get(),
+            
+            // Variabel helper untuk view.
+            'todayDate' => now()->format('Y-m-d'),
+            'nowTime'   => now()->format('H:i'),
         ];
 
         return view('outlets.results.mccreate', $data);
