@@ -1,85 +1,100 @@
 @extends('layouts.app', ['header' => 'Statistik & Distribusi'])
 
 @section('content')
-<div class="space-y-6">
 
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+<div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg space-y-8">
+
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-slate-200">
         <div>
-            <h1 class="text-2xl font-bold text-slate-800">Statistik Outlet & Distribusi</h1>
-            <p class="mt-1 text-sm text-slate-500">Analisis performa outlet dan sebaran geografis penerbitan surat.</p>
+            <h1 class="text-3xl font-bold tracking-tight text-slate-900">Statistik & Distribusi</h1>
+            <p class="mt-2 text-slate-500">Analisis performa outlet dan sebaran geografis penerbitan surat.</p>
         </div>
-        <div class="flex items-center gap-2 p-1 bg-slate-100 border border-slate-200 rounded-lg">
-            @php
-                $currentPeriod = request('period', 'all_time');
-                $periods = [
-                    'today' => 'Hari Ini',
-                    'last_7_days' => '7 Hari',
-                    'this_month' => 'Bulan Ini',
-                    'all_time' => 'Semua Waktu',
-                ];
-            @endphp
-            @foreach($periods as $key => $label)
-                <a href="{{ route('statistics.index', ['period' => $key]) }}"
-                   class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-200 {{ $currentPeriod === $key ? 'bg-white shadow text-blue-600' : 'text-slate-500 hover:text-slate-800' }}">
-                    {{ $label }}
-                </a>
-            @endforeach
+        <div class="flex-shrink-0">
+            <div class="p-1 bg-slate-100 border border-slate-200 rounded-lg flex items-center">
+                @php
+                    $currentPeriod = request('period', 'all_time');
+                    $periods = [
+                        'today' => 'Hari Ini',
+                        'last_7_days' => '7 Hari',
+                        'this_month' => 'Bulan Ini',
+                        'all_time' => 'Semua Waktu',
+                    ];
+                @endphp
+                @foreach($periods as $key => $label)
+                    <a href="{{ route('statistics.index', ['period' => $key]) }}"
+                       class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-200 whitespace-nowrap {{ $currentPeriod === $key ? 'bg-white shadow text-blue-600' : 'text-slate-500 hover:text-slate-800' }}">
+                        {{ $label }}
+                    </a>
+                @endforeach
+            </div>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="bg-white rounded-xl shadow-md border border-slate-200 p-6">
-            <h2 class="text-xl font-semibold text-slate-800 mb-4">🏆 Papan Peringkat Outlet Teratas</h2>
-            <ol class="space-y-3">
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+        <div class="lg:col-span-2 bg-slate-50 border border-slate-200 rounded-xl p-6">
+            <h2 class="text-xl font-semibold text-slate-800 mb-4">🏆 Papan Peringkat Outlet</h2>
+            <div class="space-y-4">
+                @php
+                    // Dapatkan nilai total tertinggi untuk kalkulasi persentase progress bar
+                    $maxTotal = $outletRanks->max('total') ?: 1;
+                @endphp
                 @forelse ($outletRanks as $index => $outlet)
-                    <li class="flex items-center gap-4 p-3 rounded-lg transition-colors hover:bg-slate-50">
+                    <div>
                         @php
                             $rank = $index + 1;
-                            $rankColor = 'text-slate-500';
                             $rankIcon = "#{$rank}";
-                            if ($rank == 1) { $rankColor = 'text-amber-400'; $rankIcon = '🥇'; }
-                            if ($rank == 2) { $rankColor = 'text-slate-400'; $rankIcon = '🥈'; }
-                            if ($rank == 3) { $rankColor = 'text-amber-600'; $rankIcon = '🥉'; }
+                            if ($rank == 1) $rankIcon = '🥇';
+                            if ($rank == 2) $rankIcon = '🥈';
+                            if ($rank == 3) $rankIcon = '🥉';
+                            $percentage = ($outlet->total / $maxTotal) * 100;
                         @endphp
-                        <div class="text-lg font-bold w-8 text-center {{ $rankColor }}">{{ $rankIcon }}</div>
-                        <div class="flex-1">
-                            <div class="font-semibold text-slate-800">{{ $outlet->name }}</div>
-                            <div class="text-xs text-slate-500">{{ $outlet->city ?? 'Lokasi tidak diketahui' }}</div>
+                        <div class="flex items-center gap-3 text-sm mb-1.5">
+                            <span class="font-bold w-6 text-center text-lg">{{ $rankIcon }}</span>
+                            <div class="flex-1">
+                                <p class="font-semibold text-slate-800 truncate">{{ $outlet->name }}</p>
+                                <p class="text-xs text-slate-500">{{ $outlet->city ?? 'Lokasi tidak diketahui' }}</p>
+                            </div>
+                            <p class="font-bold text-blue-600">{{ number_format($outlet->total) }}</p>
                         </div>
-                        <div class="text-lg font-bold text-blue-600">{{ number_format($outlet->total) }} <span class="text-sm font-medium text-slate-500">surat</span></div>
-                    </li>
+                        <div class="w-full bg-slate-200 rounded-full h-1.5 ml-9">
+                            <div class="h-1.5 rounded-full {{ $rank == 1 ? 'bg-amber-400' : 'bg-blue-500' }}" style="width: {{ $percentage }}%"></div>
+                        </div>
+                    </div>
                 @empty
-                    <p class="text-center text-slate-500 py-8">Tidak ada data peringkat untuk ditampilkan.</p>
+                    <div class="text-center text-slate-500 py-12">
+                         <svg class="w-12 h-12 mx-auto text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
+                        <p class="mt-2 font-medium">Tidak ada data peringkat.</p>
+                    </div>
                 @endforelse
-            </ol>
+            </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-md border border-slate-200 p-6">
+        <div class="lg:col-span-3 bg-slate-50 border border-slate-200 rounded-xl p-6">
             <h2 class="text-xl font-semibold text-slate-800 mb-4">📍 Peta Sebaran Penerbitan Surat</h2>
-            <div id="mapRiauSurat" class="w-full h-96 rounded-lg border border-slate-200"></div>
+            <div id="mapRiauSurat" class="w-full h-[28rem] rounded-lg border border-slate-200 shadow-inner"></div>
         </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-md border border-slate-200 p-6">
+    <div class="bg-slate-50 border border-slate-200 rounded-xl p-6">
         <h2 class="text-xl font-semibold text-slate-800 mb-4">📊 Demografi Surat Berdasarkan Kota</h2>
-         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-             <div class="h-80">
+         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="md:col-span-2 h-80">
                 <canvas id="cityDemographicChart"></canvas>
             </div>
             <div class="text-sm">
-                <p class="font-semibold text-slate-700 mb-2">Ringkasan Data:</p>
-                <div class="space-y-2">
+                <p class="font-semibold text-slate-700 mb-3 pb-2 border-b border-slate-200">Ringkasan Data</p>
+                <div class="space-y-3">
                     <div class="flex justify-between items-center">
                         <span class="text-slate-500">Total Kota/Kab.</span>
                         <span class="font-bold text-slate-800">{{ $cityLabels->count() }}</span>
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="text-slate-500">Kota Tertinggi</span>
-                        <span class="font-bold text-green-600">{{ $maxCity->created_city ?? '—' }} ({{ number_format($maxCity->total ?? 0) }})</span>
+                        <span class="font-bold text-green-600 text-right">{{ $maxCity->created_city ?? '—' }} ({{ number_format($maxCity->total ?? 0) }})</span>
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="text-slate-500">Kota Terendah</span>
-                        <span class="font-bold text-red-600">{{ $minCity->created_city ?? '—' }} ({{ number_format($minCity->total ?? 0) }})</span>
+                        <span class="font-bold text-red-600 text-right">{{ $minCity->created_city ?? '—' }} ({{ number_format($minCity->total ?? 0) }})</span>
                     </div>
                 </div>
             </div>

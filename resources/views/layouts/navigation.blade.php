@@ -47,27 +47,38 @@ $currentRole = Auth::user()->role_type;
 $navigationItems = $menuConfig[$currentRole] ?? [];
 @endphp
 
-<nav class="space-y-1">
-
-@foreach($navigationItems as $item)
+<nav class="space-y-1 px-2"> @foreach($navigationItems as $item)
     
     @if(isset($item['heading']))
-        <div class="px-3 pt-4 pb-2 text-xs font-semibold uppercase text-slate-500 tracking-wider">
+        {{-- [IMPROVEMENT] Memberi jarak lebih tegas antar grup menu --}}
+        <div class="px-3 pt-6 pb-2 text-xs font-bold uppercase text-slate-400 tracking-widest">
             {{ $item['heading'] }}
         </div>
     @else
         @php
             $isActive = request()->routeIs($item['active']);
         @endphp
-        <a href="{{ route($item['route']) }}" 
-           class="flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-colors duration-200
-                  {{ $isActive ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900' }}">
-            <svg class="w-5 h-5 flex-shrink-0 {{ $isActive ? 'text-blue-600' : 'text-slate-400' }}" 
-                 fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                 {!! $item['icon'] !!}
-            </svg>
-            <span>{{ $item['label'] }}</span>
-        </a>
+        {{-- [IMPROVEMENT] Menambahkan 'relative' untuk posisi bar aktif --}}
+        <div class="relative">
+            {{-- [IMPROVEMENT] Bar vertikal sebagai indikator aktif yang lebih jelas --}}
+            <div class="absolute left-0 inset-y-0 w-1 rounded-r-lg bg-blue-600 transition-transform duration-300 ease-in-out {{ $isActive ? 'scale-y-100' : 'scale-y-0' }}"></div>
+
+            <a href="{{ route($item['route']) }}" 
+               class="flex items-center space-x-4 pl-4 pr-3 py-2.5 rounded-lg transition-all duration-200 group
+                      {{ $isActive 
+                         ? 'bg-blue-50 text-blue-700 font-semibold shadow-sm shadow-blue-500/20' 
+                         : 'text-slate-500 hover:bg-slate-200/50 hover:text-slate-900 hover:translate-x-1' }}"
+               aria-current="{{ $isActive ? 'page' : 'false' }}">
+                
+                <svg class="w-6 h-6 flex-shrink-0 transition-colors duration-200 
+                          {{ $isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600' }}" 
+                     fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    {!! $item['icon'] !!}
+                </svg>
+                
+                <span class="truncate">{{ $item['label'] }}</span>
+            </a>
+        </div>
     @endif
 
 @endforeach
