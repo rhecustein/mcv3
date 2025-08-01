@@ -1,4 +1,7 @@
 <?php
+
+// File: routes/web.php
+
 use App\Http\Middleware\EnsureSingleSession;
 use App\Http\Controllers\AdminManagementController;
 use App\Http\Controllers\OutletController;
@@ -25,192 +28,298 @@ use App\Models\Company;
 use App\Models\IcdMaster;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use LDAP\Result;
 
+/*
+|--------------------------------------------------------------------------
+| Health Management System Routes
+|--------------------------------------------------------------------------
+|
+| Organized by access level and functionality:
+| 1. Public Routes (no authentication)
+| 2. Common Authenticated Routes (all roles)
+| 3. Superadmin Routes (system management)
+| 4. Outlet Routes (daily operations)
+| 5. API Routes (data endpoints)
+|
+*/
+
+// ==================== PUBLIC ROUTES ====================
+
+// Landing page
 Route::get('/', function () {
     return view('welcome');
 });
 
-//verify
-Route::get('/verify/{code}', [PublicResultController::class, 'verify'])->name('result.verify');
+// Public result verification
+Route::get('/verify/{code}', [PublicResultController::class, 'verify'])
+    ->name('result.verify');
 
+// Authentication routes
+require __DIR__.'/auth.php';
 
-//static route semua role kecuali guest guankan StatisticsController
-
+// ==================== COMMON AUTHENTICATED ROUTES ====================
 Route::middleware(['auth', EnsureSingleSession::class])->group(function () {
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
-
-Route::get('/header/notifications', [NotificationController::class, 'fetchHeaderNotifications'])
-    ->middleware('auth')
-    ->name('header.notifications');
-
-Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
-Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
-Route::get('/profile/{user}', [ProfileController::class, 'show'])->name('profile.show');
-Route::get('/profile/sessions', [ProfileController::class, 'sessionLogs'])->name('profile.sessions');
-
-
-
-// Group route setting semua role
-Route::middleware(['auth'])->group(function () {
-    Route::get('/settings', [ProfileController::class, 'settings'])->name('settings.index');
-    Route::get('/settings/activity', [ProfileController::class, 'activity'])->name('settings.activity');
-    Route::get('/settings/session', [ProfileController::class, 'session'])->name('settings.session');
-    Route::get('/settings/notifications', [ProfileController::class, 'notifications'])->name('settings.notifications');
-    Route::put('/settings/notifications', [ProfileController::class, 'updateNotifications'])->name('settings.notifications.update');
-    Route::get('/settings/profile', [ProfileController::class, 'edit'])->name('settings.profile.edit');
-    Route::put('/settings/profile', [ProfileController::class, 'update'])->name('settings.profile.update');
-    Route::put('/settings/profile/password', [ProfileController::class, 'updatePassword'])->name('settings.profile.password');
+    
+    // ========== DASHBOARD ==========
+    Route::get('/dashboard', function () {
+        return view('dashboard');
+    })->middleware(['verified'])->name('dashboard');
+    
+    // ========== NOTIFICATIONS ==========
+    Route::get('/header/notifications', [NotificationController::class, 'fetchHeaderNotifications'])
+        ->name('header.notifications');
+    
+    // ========== PROFILE MANAGEMENT ==========
+    Route::prefix('profile')->name('profile.')->group(function () {
+        Route::get('/', [ProfileController::class, 'edit'])->name('edit');
+        Route::put('/', [ProfileController::class, 'update'])->name('update');
+        Route::put('/password', [ProfileController::class, 'updatePassword'])->name('password');
+        Route::get('/{user}', [ProfileController::class, 'show'])->name('show');
+        Route::get('/sessions', [ProfileController::class, 'sessionLogs'])->name('sessions');
+    });
+    
+    // ========== SETTINGS (ALL ROLES) ==========
+    Route::prefix('settings')->name('settings.')->group(function () {
+        Route::get('/', [ProfileController::class, 'settings'])->name('index');
+        Route::get('/activity', [ProfileController::class, 'activity'])->name('activity');
+        Route::get('/session', [ProfileController::class, 'session'])->name('session');
+        Route::get('/notifications', [ProfileController::class, 'notifications'])->name('notifications');
+        Route::put('/notifications', [ProfileController::class, 'updateNotifications'])->name('notifications.update');
+        Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+    });
 });
 
-// Group route untuk superadmin
-Route::middleware(['auth', 'can:isSuperadmin'])->prefix('superadmin')->name('admins.')->group(function () {
-    Route::get('/admins', [AdminManagementController::class, 'index'])->name('index');
-    Route::get('/admins/create', [AdminManagementController::class, 'create'])->name('create');
-    Route::post('/admins', [AdminManagementController::class, 'store'])->name('store');
-    Route::get('/admins/{admin}/edit', [AdminManagementController::class, 'edit'])->name('edit');
-    Route::put('/admins/{admin}', [AdminManagementController::class, 'update'])->name('update');
-    Route::delete('/admins/{admin}', [AdminManagementController::class, 'destroy'])->name('destroy');
-    Route::post('/admins/{user}/ban', [AdminManagementController::class, 'ban'])->name('ban');
-    Route::post('/admins/{user}/unban', [AdminManagementController::class, 'unban'])->name('unban');
-    //dashboard
-    Route::get('/dashboard', [AdminManagementController::class, 'dashboard'])->name('dashboard');
+// ==================== SUPERADMIN ROUTES ====================
+Route::middleware(['auth', 'can:isSuperadmin'])
+    ->prefix('superadmin')
+    ->group(function () {
+    
+    // ========== ADMIN MANAGEMENT ==========
+    Route::prefix('admins')->name('admins.')->group(function () {
+        Route::get('/', [AdminManagementController::class, 'index'])->name('index');
+        Route::get('/create', [AdminManagementController::class, 'create'])->name('create');
+        Route::post('/', [AdminManagementController::class, 'store'])->name('store');
+        Route::get('/{admin}/edit', [AdminManagementController::class, 'edit'])->name('edit');
+        Route::put('/{admin}', [AdminManagementController::class, 'update'])->name('update');
+        Route::delete('/{admin}', [AdminManagementController::class, 'destroy'])->name('destroy');
+        Route::post('/{user}/ban', [AdminManagementController::class, 'ban'])->name('ban');
+        Route::post('/{user}/unban', [AdminManagementController::class, 'unban'])->name('unban');
+    });
+    Route::get('/dashboard', [AdminManagementController::class, 'dashboard'])->name('admins.dashboard');
+    
+    // ========== OUTLET MANAGEMENT ==========
+    Route::prefix('outlets')->name('outlets.')->group(function () {
+        Route::get('/', [OutletController::class, 'index'])->name('index');
+        Route::get('/create', [OutletController::class, 'create'])->name('create');
+        Route::post('/', [OutletController::class, 'store'])->name('store');
+        Route::get('/{outlet}/edit', [OutletController::class, 'edit'])->name('edit');
+        Route::put('/{outlet}', [OutletController::class, 'update'])->name('update');
+        Route::delete('/{outlet}', [OutletController::class, 'destroy'])->name('destroy');
+        Route::patch('/{outlet}/toggle', [OutletController::class, 'toggleActive'])->name('toggle');
+        Route::post('/{outlet}/reset-password', [OutletController::class, 'resetPassword'])->name('reset-password');
+    });
+    
+    // ========== DOCTOR MANAGEMENT ==========
+    Route::prefix('doctors')->name('doctors.')->group(function () {
+        Route::get('/', [DoctorManagementController::class, 'index'])->name('index');
+        Route::get('/create', [DoctorManagementController::class, 'create'])->name('create');
+        Route::post('/', [DoctorManagementController::class, 'store'])->name('store');
+        Route::get('/{doctor}/edit', [DoctorManagementController::class, 'edit'])->name('edit');
+        Route::put('/{doctor}', [DoctorManagementController::class, 'update'])->name('update');
+        Route::delete('/{doctor}', [DoctorManagementController::class, 'destroy'])->name('destroy');
+        Route::post('/{doctor}/ban', [DoctorManagementController::class, 'ban'])->name('ban');
+        Route::post('/{doctor}/unban', [DoctorManagementController::class, 'unban'])->name('unban');
+        Route::post('/{doctor}/reset-password', [DoctorManagementController::class, 'resetPassword'])->name('resetPassword');
+    });
+    
+    // ========== COMPANY MANAGEMENT ==========
+    Route::prefix('companies')->name('companies.')->group(function () {
+        Route::get('/', [CompanyController::class, 'index'])->name('index');
+        Route::get('/create', [CompanyController::class, 'create'])->name('create');
+        Route::post('/', [CompanyController::class, 'store'])->name('store');
+        Route::get('/{company}/edit', [CompanyController::class, 'edit'])->name('edit');
+        Route::put('/{company}', [CompanyController::class, 'update'])->name('update');
+        Route::delete('/{company}', [CompanyController::class, 'destroy'])->name('destroy');
+    });
+    
+    // ========== TEMPLATE MANAGEMENT ==========
+    Route::prefix('template-results')->name('template-results.')->group(function () {
+        Route::get('/', [TemplateResultController::class, 'index'])->name('index');
+        Route::get('/create', [TemplateResultController::class, 'create'])->name('create');
+        Route::post('/', [TemplateResultController::class, 'store'])->name('store');
+        Route::get('/{templateResult}/edit', [TemplateResultController::class, 'edit'])->name('edit');
+        Route::put('/{templateResult}', [TemplateResultController::class, 'update'])->name('update');
+        Route::delete('/{templateResult}', [TemplateResultController::class, 'destroy'])->name('destroy');
+    });
+    
+    // ========== STATISTICS & ANALYTICS ==========
+    Route::prefix('statistics')->name('statistics.')->group(function () {
+        Route::get('/', [StatisticsController::class, 'index'])->name('index');
+        Route::get('/leaderboard', [StatisticsController::class, 'leaderboard'])->name('leaderboard');
+        Route::get('/api/leaderboard', [StatisticsController::class, 'getLeaderboard'])->name('api.leaderboard');
+    });
+    
+    // ========== PACKAGE MANAGEMENT ==========
+    Route::prefix('packages')->name('packages.')->group(function () {
+        Route::get('/', [PackageController::class, 'index'])->name('index');
+        Route::get('/create', [PackageController::class, 'create'])->name('create');
+        Route::post('/', [PackageController::class, 'store'])->name('store');
+        Route::get('/{package}/edit', [PackageController::class, 'edit'])->name('edit');
+        Route::put('/{package}', [PackageController::class, 'update'])->name('update');
+        Route::delete('/{package}', [PackageController::class, 'destroy'])->name('destroy');
+    });
+    
+    // ========== PACKAGE TRANSACTIONS ==========
+    Route::prefix('package-transactions')->name('package-transactions.')->group(function () {
+        Route::get('/', [PackageTransactionController::class, 'index'])->name('index');
+        Route::get('/{packageTransaction}', [PackageTransactionController::class, 'show'])->name('show');
+        Route::delete('/{packageTransaction}', [PackageTransactionController::class, 'destroy'])->name('destroy');
+    });
+    
+    // ========== SESSION MANAGEMENT ==========
+    Route::prefix('session-logins')->name('session-logins.')->group(function () {
+        Route::get('/', [SessionLoginController::class, 'index'])->name('index');
+        Route::get('/{sessionLogin}', [SessionLoginController::class, 'show'])->name('show');
+        Route::delete('/{sessionLogin}', [SessionLoginController::class, 'destroy'])->name('destroy');
+        Route::post('/logout', [SessionLoginController::class, 'logout'])->name('logout');
+        Route::post('/logout-all', [SessionLoginController::class, 'logoutAll'])->name('logoutAll');
+        Route::post('/logout-other', [SessionLoginController::class, 'logoutOther'])->name('logoutOther');
+        Route::post('/block-ip', [SessionLoginController::class, 'blockIp'])->name('block');
+        Route::post('/unblock-ip', [SessionLoginController::class, 'unblockIp'])->name('unblock');
+    });
 });
 
-// Group route untuk superadmin - manajemen outlet
-Route::middleware(['auth', 'can:isSuperadmin'])->prefix('superadmin')->name('outlets.')->group(function () {
-    Route::get('/outlets', [OutletController::class, 'index'])->name('index');
-    Route::get('/outlets/create', [OutletController::class, 'create'])->name('create');
-    Route::post('/outlets', [OutletController::class, 'store'])->name('store');
-    Route::get('/outlets/{outlet}/edit', [OutletController::class, 'edit'])->name('edit');
-    Route::put('/outlets/{outlet}', [OutletController::class, 'update'])->name('update');
-    Route::delete('/outlets/{outlet}', [OutletController::class, 'destroy'])->name('destroy');
-    Route::patch('/outlets/{outlet}/toggle', [OutletController::class, 'toggleActive'])->name('toggle');
-    Route::post('/outlets/{outlet}/reset-password', [OutletController::class, 'resetPassword'])->name('reset-password');
-});
-
-// Group route untuk superadmin - manajemen dokter
-Route::middleware(['auth', 'can:isSuperadmin'])->prefix('superadmin')->name('doctors.')->group(function () {
-    Route::get('/doctors', [DoctorManagementController::class, 'index'])->name('index');
-    Route::get('/doctors/create', [DoctorManagementController::class, 'create'])->name('create');
-    Route::post('/doctors', [DoctorManagementController::class, 'store'])->name('store');
-    Route::get('/doctors/{doctor}/edit', [DoctorManagementController::class, 'edit'])->name('edit');
-    Route::put('/doctors/{doctor}', [DoctorManagementController::class, 'update'])->name('update');
-    Route::delete('/doctors/{doctor}', [DoctorManagementController::class, 'destroy'])->name('destroy');
-    Route::post('/doctors/{doctor}/ban', [DoctorManagementController::class, 'ban'])->name('ban');
-    Route::post('/doctors/{doctor}/unban', [DoctorManagementController::class, 'unban'])->name('unban');
-    Route::post('/doctors/{doctor}/reset-password', [DoctorManagementController::class, 'resetPassword'])->name('resetPassword');
-});
-
-// Group route untuk superadmin - manajemen Company
-Route::middleware(['auth', 'can:isSuperadmin'])->prefix('superadmin')->name('companies.')->group(function () {
-    Route::get('/companies', [CompanyController::class, 'index'])->name('index');
-    Route::get('/companies/create', [CompanyController::class, 'create'])->name('create');
-    Route::post('/companies', [CompanyController::class, 'store'])->name('store');
-    Route::get('/companies/{company}/edit', [CompanyController::class, 'edit'])->name('edit');
-    Route::put('/companies/{company}', [CompanyController::class, 'update'])->name('update');
-    Route::delete('/companies/{company}', [CompanyController::class, 'destroy'])->name('destroy');
-});
-
-// Group route untuk superadmin - manajemen Template Result
-Route::middleware(['auth', 'can:isSuperadmin'])->prefix('superadmin')->name('template-results.')->group(function () {
-    Route::get('/template-results', [\App\Http\Controllers\TemplateResultController::class, 'index'])->name('index');
-    Route::get('/template-results/create', [\App\Http\Controllers\TemplateResultController::class, 'create'])->name('create');
-    Route::post('/template-results', [\App\Http\Controllers\TemplateResultController::class, 'store'])->name('store');
-    Route::get('/template-results/{templateResult}/edit', [\App\Http\Controllers\TemplateResultController::class, 'edit'])->name('edit');
-    Route::put('/template-results/{templateResult}', [\App\Http\Controllers\TemplateResultController::class, 'update'])->name('update');
-    Route::delete('/template-results/{templateResult}', [\App\Http\Controllers\TemplateResultController::class, 'destroy'])->name('destroy');
-});
-
-// Group route untuk superadmin - statistik
-Route::middleware(['auth', 'can:isSuperadmin'])->prefix('superadmin')->name('statistics.')->group(function () {
-    Route::get('/statistics', [\App\Http\Controllers\StatisticsController::class, 'index'])->name('index');
-    Route::get('/statistics/leaderboard', [\App\Http\Controllers\StatisticsController::class, 'leaderboard'])->name('leaderboard');
-    Route::get('/api/leaderboard', [StatisticsController::class, 'getLeaderboard'])->name('api.leaderboard');
-});
-
-// Group route untuk superadmin - manajemen paket
-Route::middleware(['auth', 'can:isSuperadmin'])->prefix('superadmin')->name('packages.')->group(function () {
-    Route::get('/packages', [\App\Http\Controllers\PackageController::class, 'index'])->name('index');
-    Route::get('/packages/create', [\App\Http\Controllers\PackageController::class, 'create'])->name('create');
-    Route::post('/packages', [\App\Http\Controllers\PackageController::class, 'store'])->name('store');
-    Route::get('/packages/{package}/edit', [\App\Http\Controllers\PackageController::class, 'edit'])->name('edit');
-    Route::put('/packages/{package}', [\App\Http\Controllers\PackageController::class, 'update'])->name('update');
-    Route::delete('/packages/{package}', [\App\Http\Controllers\PackageController::class, 'destroy'])->name('destroy');
-});
-
-// Group route untuk superadmin - manajemen transaksi paket
-Route::middleware(['auth', 'can:isSuperadmin'])->prefix('superadmin')->name('package-transactions.')->group(function () {
-    Route::get('/package-transactions', [\App\Http\Controllers\PackageTransactionController::class, 'index'])->name('index');
-    Route::get('/package-transactions/{packageTransaction}', [\App\Http\Controllers\PackageTransactionController::class, 'show'])->name('show');
-    Route::delete('/package-transactions/{packageTransaction}', [\App\Http\Controllers\PackageTransactionController::class, 'destroy'])->name('destroy');
-});
-
-// Group route untuk superadmin - manajemen session login
-Route::prefix('superadmin/session-logins')->name('session-logins.')->group(function () {
-    Route::get('/', [SessionLoginController::class, 'index'])->name('index');                     // ✅
-    Route::get('/{sessionLogin}', [SessionLoginController::class, 'show'])->name('show');         // ✅
-    Route::delete('/{sessionLogin}', [SessionLoginController::class, 'destroy'])->name('destroy'); // ✅
-    Route::post('/logout', [SessionLoginController::class, 'logout'])->name('logout');             // ✅
-    Route::post('/logout-all', [SessionLoginController::class, 'logoutAll'])->name('logoutAll');   // ✅
-    Route::post('/logout-other', [SessionLoginController::class, 'logoutOther'])->name('logoutOther'); // ✅
-    Route::post('/block-ip', [SessionLoginController::class, 'blockIp'])->name('block');       // ✅
-    Route::post('/unblock-ip', [SessionLoginController::class, 'unblockIp'])->name('unblock'); // ✅
-});
-
-
-Route::prefix('outlet')
-    ->middleware(['auth', CheckRoleType::class . ':outlet'])
+// ==================== OUTLET ROUTES ====================
+Route::middleware(['auth', CheckRoleType::class . ':outlet'])
+    ->prefix('outlet')
     ->name('outlet.')
     ->group(function () {
-        Route::get('/dashboard', [OutletController::class, 'dashboard'])->name('dashboard');
-        Route::get('/home', [OutletController::class, 'home'])->name('home');
-        Route::resource('doctors', DoctorOutletController::class)->except(['show']);
-        Route::get('/pasien', [PatientController::class, 'index'])->name('patients.index');
-        Route::get('/statistics', [StatisticsManagementController::class, 'index'])->name('statistics.index');
-        //reports
-        Route::get('/reports', [ReportManagementController::class, 'index'])->name('reports.index');
-        Route::post('/reports/export', [ReportManagementController::class, 'export'])->name('reports.export');
-        Route::get('/reports/types/{type}', [ReportManagementController::class, 'form'])->name('reports.form');
-        Route::get('/reports/preview', [ReportManagementController::class, 'previewData'])->name('reports.preview');
-        //reports old
-        Route::get('/reports/old', [ReportManagementController::class, 'indexOld'])->name('reports.old');
-        Route::post('/reports/old/export', [ReportManagementController::class, 'exportOld'])->name('reports.old.export');
-        Route::get('/reports/old/types/{type}', [ReportManagementController::class, 'formOld'])->name('reports.old.form');
-        Route::get('/reports/old/preview', [ReportManagementController::class, 'previewDataOld'])->name('reports.old.preview');
+    
+    // ========== DASHBOARD & HOME ==========
+    Route::get('/dashboard', [OutletController::class, 'dashboard'])->name('dashboard');
+    Route::get('/home', [OutletController::class, 'home'])->name('home');
+    
+    // ========== CORE RESOURCES ==========
+    Route::resource('doctors', DoctorOutletController::class)->except(['show']);
+    Route::get('/patients', [PatientController::class, 'index'])->name('patients.index');
+    Route::get('/statistics', [StatisticsManagementController::class, 'index'])->name('statistics.index');
+    
+    // ========== HEALTH LETTERS MANAGEMENT ==========
+    Route::prefix('healthletters')->name('healthletter.')->group(function () {
+        Route::get('/', [HealthletterController::class, 'index'])->name('index');
+    });
+    
+    // ========== MEDICAL CERTIFICATES (SKB - Surat Keterangan Sehat) ==========
+    Route::prefix('results/skb')->name('results.skb.')->group(function () {
+        Route::get('/create', [HealthletterController::class, 'createSuratSehat'])->name('create');
+        Route::post('/', [HealthletterController::class, 'storeSuratSehat'])->name('store');
+        Route::get('/{id}', [HealthletterController::class, 'showSuratSehat'])->name('show');
+        Route::get('/{id}/edit', [HealthletterController::class, 'editSuratSehat'])->name('edit');
+        Route::put('/{id}', [HealthletterController::class, 'updateSuratSehat'])->name('update');
+        Route::delete('/{id}', [HealthletterController::class, 'deleteSuratSehat'])->name('delete');
+        Route::get('/preview/{encryptedId}', [HealthletterController::class, 'previewSuratSehat'])->name('preview');
+        Route::get('/document/{uniqueCode}', [HealthletterController::class, 'showSuratSehat'])->name('document');
+        Route::get('/regenerate/{id}', [HealthletterController::class, 'regenerateSuratSehat'])->name('regenerate');
+        Route::post('/sign-confirm', [HealthletterController::class, 'signConfirmSuratSehat'])->name('sign.confirm');
+        Route::post('/bulk-regenerate', [HealthletterController::class, 'bulkingRegenerateSuratSehat'])->name('bulk.regenerate');
+    });
+    
+    // ========== MEDICAL CERTIFICATES (MC - Medical Certificate) ==========
+    Route::prefix('results/mc')->name('results.mc.')->group(function () {
+        Route::get('/create', [HealthletterController::class, 'createSuratSakit'])->name('create');
+        Route::post('/', [HealthletterController::class, 'storeSuratSakit'])->name('store');
+        Route::get('/{id}', [HealthletterController::class, 'showSuratSakit'])->name('show');
+        Route::get('/{id}/edit', [HealthletterController::class, 'editSuratSakit'])->name('edit');
+        Route::put('/{id}', [HealthletterController::class, 'updateSuratSakit'])->name('update');
+        Route::delete('/{id}', [HealthletterController::class, 'deleteSuratSakit'])->name('delete');
+        Route::get('/preview/{encryptedId}', [HealthletterController::class, 'previewSuratSakit'])->name('preview');
+        Route::get('/document/{uniqueCode}', [HealthletterController::class, 'showSuratSakit'])->name('document');
+        Route::get('/regenerate/{id}', [HealthletterController::class, 'regenerateSuratSakit'])->name('regenerate');
+        Route::post('/sign-confirm', [HealthletterController::class, 'signConfirmSuratSakit'])->name('sign.confirm');
+    });
+    
+    // ========== LEGACY RESULTS ROUTES (BACKWARD COMPATIBILITY) ==========
+    Route::prefix('results')->name('results.')->group(function () {
+        Route::post('/skb', [HealthletterController::class, 'storeSuratSehat'])->name('store');
+        Route::get('/preview/{id}', [HealthletterController::class, 'tesPdf'])->name('preview');
+        Route::get('/document/{uniqueCode}', [HealthletterController::class, 'show'])->name('show');
+        Route::get('/regenerate/{id}', [HealthletterController::class, 'regenerateDocument'])->name('regenerate');
+        Route::get('/{id}/edit', [HealthletterController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [HealthletterController::class, 'update'])->name('update');
+        Route::delete('/{id}', [HealthletterController::class, 'delete'])->name('delete');
+        Route::post('/sign-confirm', [HealthletterController::class, 'signConfirm'])->name('sign.confirm');
+        Route::post('/bulk-regenerate', [HealthletterController::class, 'bulkingRegenerate'])->name('bulk.regenerate');
+        Route::post('/verify', [HealthletterController::class, 'checkVerification'])->name('verify');
+        Route::post('/send-notif', [HealthletterController::class, 'sendNotif'])->name('sendNotif');
+        Route::get('/{id}/download', [ResultController::class, 'download'])->name('download');
+        Route::get('/confirm-location', [ResultController::class, 'confirmLocation'])->name('confirm-location');
+        Route::get('/create/mc', [ResultController::class, 'showForm'])->name('create.mc');
+    });
+    
+    // ========== SURAT MANAGEMENT (LEGACY) ==========
+    Route::prefix('surat')->name('surat.')->group(function () {
+        Route::get('/', [ResultController::class, 'index'])->name('index');
+        Route::get('/create', [ResultController::class, 'create'])->name('create');
+    });
+    
+    // ========== REPORTS MANAGEMENT ==========
+    Route::prefix('reports')->name('reports.')->group(function () {
+        Route::get('/', [ReportManagementController::class, 'index'])->name('index');
+        Route::post('/export', [ReportManagementController::class, 'export'])->name('export');
+        Route::get('/types/{type}', [ReportManagementController::class, 'form'])->name('form');
+        Route::get('/preview', [ReportManagementController::class, 'previewData'])->name('preview');
         
-        Route::get('/healthletters', [HealthletterController::class, 'index'])->name('healthletter.index');
-        Route::get('/results/skb/create', [HealthletterController::class, 'createSuratSehat'])->name('results.skb.create');
-        Route::get('/results/mc/create', [HealthletterController::class, 'createSuratSakit'])->name('results.mc.create');
-        Route::post('/results/skb', [HealthletterController::class, 'storeSuratSehat'])->name('results.store');
-        Route::get('/results/preview/{id}', [HealthletterController::class, 'tesPdf'])->name('results.preview');
-        Route::get('/results/document/{uniqueCode}', [HealthletterController::class, 'show'])->name('result.show');
-        Route::get('/results/regenerate/{id}', [HealthletterController::class, 'regenerateDocument'])->name('results.regenerate');
-        Route::get('/results/{id}/edit', [HealthletterController::class, 'edit'])->name('results.edit');
-        Route::put('/results/{id}', [HealthletterController::class, 'update'])->name('results.update');
-        Route::delete('/results/{id}', [HealthletterController::class, 'delete'])->name('results.delete');
-        Route::post('/results/sign-confirm', [HealthletterController::class, 'signConfirm'])->name('results.sign.confirm');
-        Route::post('/results/bulk-regenerate', [HealthletterController::class, 'bulkingRegenerate'])->name('results.bulk.regenerate');
-        Route::post('/results/verify', [HealthletterController::class, 'checkVerification'])->name('results.verify');
-        Route::get('/doctors/by-outlet', [HealthletterController::class, 'apiGetDoctor'])->name('doctors.by.outlet');
+        // Old reports (legacy system)
+        Route::prefix('old')->name('old.')->group(function () {
+            Route::get('/', [ReportManagementController::class, 'indexOld'])->name('index');
+            Route::post('/export', [ReportManagementController::class, 'exportOld'])->name('export');
+            Route::get('/types/{type}', [ReportManagementController::class, 'formOld'])->name('form');
+            Route::get('/preview', [ReportManagementController::class, 'previewDataOld'])->name('preview');
+        });
+    });
+    
+    // ========== DOCUMENT QUEUE MANAGEMENT ==========
+    Route::prefix('queue-monitor')->name('queue.')->group(function () {
+        Route::get('/', [DocumentQueueController::class, 'index'])->name('index');
+        Route::post('/retry/{id}', [DocumentQueueController::class, 'retry'])->name('retry');
+        Route::get('/data', [DocumentQueueController::class, 'fetchData'])->name('data');
+        Route::delete('/delete/{id}', [HealthletterController::class, 'destroyQueue'])->name('destroy');
+    });
+    
+    // ========== TRASH MANAGEMENT ==========
+    Route::prefix('result-trash')->name('result.trash.')->group(function () {
+        Route::get('/', [HealthletterController::class, 'indexTrash'])->name('index');
+        Route::post('/restore/{id}', [HealthletterController::class, 'restore'])->name('restore');
+    });
+    
+    // ========== SESSION MANAGEMENT ==========
+    Route::prefix('sessions')->name('sessions.')->group(function () {
+        Route::get('/', [SessionLoginController::class, 'indexOutlet'])->name('index');
+        Route::post('/{id}/logout', [SessionLoginController::class, 'forceLogoutOutlet'])->name('forceLogout');
+    });
+    
+    // ========== COMPANY MANAGEMENT ==========
+    Route::post('/companies', [HealthletterController::class, 'storeCompany'])->name('companies.store');
+    
+    // ========== ADDITIONAL ENDPOINTS ==========
+    Route::get('/doctors/by-outlet', [HealthletterController::class, 'apiGetDoctor'])->name('doctors.by.outlet');
+});
 
-        Route::get('/results/{id}/download', [ResultController::class, 'download'])->name('results.download');
-        Route::get('/results/confirm-location', [ResultController::class, 'confirmLocation'])->name('results.confirm-location');
-        Route::get('/results/create/mc', [ResultController::class, 'showForm'])->name('results.create.mc');
-        Route::get('/surat', [ResultController::class, 'index'])->name('surat.index');
-        Route::get('/surat/create', [ResultController::class, 'create'])->name('surat.create');
-
-        // show results
-        Route::get('/results/skb/{id}', [HealthletterController::class, 'showSuratSehat'])->name('results.skb.show');
-        Route::get('/results/mc/{id}', [HealthletterController::class, 'showSuratSakit'])->name('results.mc.show');
-
-        // skb & mc
-       Route::get('/patients/live-search', function (Request $request) {
+// ==================== API ROUTES (OUTLET DATA) ====================
+Route::middleware(['auth', CheckRoleType::class . ':outlet'])
+    ->prefix('outlet')
+    ->name('outlet.')
+    ->group(function () {
+    
+    // ========== LIVE SEARCH APIs ==========
+    Route::prefix('api')->name('api.')->group(function () {
+        
+        // Patient search
+        Route::get('/patients/live-search', function (Request $request) {
             $query = $request->get('q');
-            $patients = Patient::with(['user', 'company']) // pastikan ada relasi ke company
+            $patients = Patient::with(['user', 'company'])
                 ->whereHas('user', function ($q) use ($query) {
                     $q->where('name', 'like', '%' . $query . '%');
                 })
@@ -220,92 +329,33 @@ Route::prefix('outlet')
                     $companyName = $p->company?->name ? ' - ' . $p->company->name : '';
                     return [
                         'id' => $p->id,
-                        'name' => $p->full_name . $companyName, // "Pasien - Perusahaan"
+                        'name' => $p->full_name . $companyName,
                         'dob' => $p->birth_date,
                         'gender' => $p->gender,
                         'phone_number' => $p->phone,
                         'address' => $p->address,
                     ];
                 });
-
             return response()->json($patients);
-        });
-
-        Route::get('/companies/live-search', function (\Illuminate\Http\Request $request) {
+        })->name('patients.search');
+        
+        // Company search
+        Route::get('/companies/live-search', function (Request $request) {
             $query = $request->get('q');
-
             $companies = Company::where('name', 'like', '%' . $query . '%')
                 ->limit(10)
                 ->get(['id', 'name']);
-
             return response()->json($companies);
-        });
-
+        })->name('companies.search');
+        
+        // ICD-10 search
         Route::get('/icd10/live-search', function (Request $request) {
             $query = $request->get('q');
-
             $icds = IcdMaster::where('code', 'like', '%' . $query . '%')
                 ->orWhere('title', 'like', '%' . $query . '%')
                 ->limit(15)
                 ->get(['id', 'code', 'title']);
-
             return response()->json($icds);
-        });
-
-        //storeCompany
-        Route::post('/companies', [HealthletterController::class, 'storeCompany'])->name('companies.store');
-
-        // Route untuk form input surat sehat (SKB)
-        Route::get('/results/skb/create', [HealthletterController::class, 'createSuratSehat'])->name('results.skb.create');
-
-        // Route untuk form input surat sakit (MC)
-        Route::get('/results/mc/create', [HealthletterController::class, 'createSuratSakit'])->name('results.mc.create');
-
-        //Route [outlet.results.sendNotif] not defined.
-        Route::post('/results/send-notif', [HealthletterController::class, 'sendNotif'])->name('results.sendNotif');
-
-        // Route untuk antrian genarasi surat sehat (SKB)
-        Route::get('/queue-monitor', [DocumentQueueController::class, 'index'])->name('queue.index');
-        Route::post('/queue-monitor/retry/{id}', [DocumentQueueController::class, 'retry'])->name('queue.retry');
-        Route::get('/queue-monitor/data', [DocumentQueueController::class, 'fetchData'])->name('queue.data');
-
-        //results.store
-        Route::post('/results/skb', [HealthletterController::class, 'storeSuratSehat'])->name('results.store.skb');
-        Route::post('/results/mc', [HealthletterController::class, 'storeSuratSakit'])->name('results.store.mc');
-        
-        Route::get('/results/skb/preview/{encryptedId}', [HealthletterController::class, 'previewSuratSehat'])->name('results.skb.preview');
-        Route::get('/results/mc/preview/{encryptedId}', [HealthletterController::class, 'previewSuratSakit'])->name('results.mc.preview');
-
-
-        Route::get('/results/skb/document/{uniqueCode}', [HealthletterController::class, 'showSuratSehat'])->name('results.skb.document');
-        Route::get('/results/mc/document/{uniqueCode}', [HealthletterController::class, 'showSuratSakit'])->name('results.mc.document');
-
-        Route::get('/results/skb/regenerate/{id}', [HealthletterController::class, 'regenerateSuratSehat'])->name('results.skb.regenerate');
-        Route::get('/results/mc/regenerate/{id}', [HealthletterController::class, 'regenerateSuratSakit'])->name('results.mc.regenerate');
-        Route::get('/results/skb/{id}/edit', [HealthletterController::class, 'editSuratSehat'])->name('results.skb.edit');
-        Route::get('/results/mc/{id}/edit', [HealthletterController::class, 'editSuratSakit'])->name('results.mc.edit');
-
-        Route::put('/results/skb/{id}', [HealthletterController::class, 'updateSuratSehat'])->name('results.skb.update');
-        Route::put('/results/mc/{id}', [HealthletterController::class, 'updateSuratSakit'])->name('results.mc.update');
-
-        Route::delete('/results/skb/{id}', [HealthletterController::class, 'deleteSuratSehat'])->name('results.skb.delete');
-        Route::delete('/results/mc/{id}', [HealthletterController::class, 'deleteSuratSakit'])->name('results.mc.delete');
-
-        Route::post('/results/skb/sign-confirm', [HealthletterController::class, 'signConfirmSuratSehat'])->name('results.skb.sign.confirm');
-        Route::post('/results/mc/sign-confirm', [HealthletterController::class, 'signConfirmSuratSakit'])->name('results.mc.sign.confirm');
-
-        Route::post('/results/skb/bulk-regenerate', [HealthletterController::class, 'bulkingRegenerateSuratSehat'])->name('results.skb.bulk.regenerate');
-
-        Route::delete('/queue-monitor/delete/{id}', [HealthletterController::class, 'destroyQueue'])->name('queue.destroy');
-
-        //trash
-        Route::get('/result-trash', [HealthletterController::class, 'indexTrash'])->name('result.trash.index');
-        Route::post('/result-trash/restore/{id}', [HealthletterController::class, 'restore'])->name('result.trash.restore');
-
-        //session
-        Route::get('/sessions', [SessionLoginController::class, 'indexOutlet'])->name('sessions.index');
-        Route::post('/sessions/{id}/logout', [SessionLoginController::class, 'forceLogoutOutlet'])->name('sessions.forceLogout');
-
+        })->name('icd10.search');
     });
 });
-require __DIR__.'/auth.php';
