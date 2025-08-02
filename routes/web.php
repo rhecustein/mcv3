@@ -38,8 +38,12 @@ use Illuminate\Support\Facades\Route;
 | 1. Public Routes (no authentication)
 | 2. Common Authenticated Routes (all roles)
 | 3. Superadmin Routes (system management)
-| 4. Outlet Routes (daily operations)
-| 5. API Routes (data endpoints)
+| 4. Admin Routes (admin management)
+| 5. Outlet Routes (daily operations)
+| 6. Doctor Routes (medical operations)
+| 7. Company Routes (company management)
+| 8. Patient Routes (patient portal)
+| 9. API Routes (data endpoints)
 |
 */
 
@@ -48,7 +52,7 @@ use Illuminate\Support\Facades\Route;
 // Landing page
 Route::get('/', function () {
     return view('welcome');
-});
+})->name('home');
 
 // Public result verification
 Route::get('/verify/{code}', [PublicResultController::class, 'verify'])
@@ -94,7 +98,11 @@ Route::middleware(['auth', EnsureSingleSession::class])->group(function () {
 // ==================== SUPERADMIN ROUTES ====================
 Route::middleware(['auth', 'can:isSuperadmin'])
     ->prefix('superadmin')
+    ->name('superadmin.')
     ->group(function () {
+    
+    // ========== DASHBOARD ==========
+    Route::get('/dashboard', [AdminManagementController::class, 'dashboard'])->name('dashboard');
     
     // ========== ADMIN MANAGEMENT ==========
     Route::prefix('admins')->name('admins.')->group(function () {
@@ -107,7 +115,6 @@ Route::middleware(['auth', 'can:isSuperadmin'])
         Route::post('/{user}/ban', [AdminManagementController::class, 'ban'])->name('ban');
         Route::post('/{user}/unban', [AdminManagementController::class, 'unban'])->name('unban');
     });
-    Route::get('/dashboard', [AdminManagementController::class, 'dashboard'])->name('admins.dashboard');
     
     // ========== OUTLET MANAGEMENT ==========
     Route::prefix('outlets')->name('outlets.')->group(function () {
@@ -191,6 +198,18 @@ Route::middleware(['auth', 'can:isSuperadmin'])
     });
 });
 
+// ==================== ADMIN ROUTES ====================
+Route::middleware(['auth', CheckRoleType::class . ':admin'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+    
+    // Dashboard
+    Route::get('/dashboard', [AdminManagementController::class, 'dashboard'])->name('dashboard');
+    
+    // Admin specific routes can be added here
+});
+
 // ==================== OUTLET ROUTES ====================
 Route::middleware(['auth', CheckRoleType::class . ':outlet'])
     ->prefix('outlet')
@@ -214,7 +233,7 @@ Route::middleware(['auth', CheckRoleType::class . ':outlet'])
     // ========== MEDICAL CERTIFICATES (SKB - Surat Keterangan Sehat) ==========
     Route::prefix('results/skb')->name('results.skb.')->group(function () {
         Route::get('/create', [HealthletterController::class, 'createSuratSehat'])->name('create');
-        Route::post('/', [HealthletterController::class, 'storeSuratSehat'])->name('store');
+        Route::post('/', [HealthletterController::class, 'storeSuratSehat'])->name('store.skb');
         Route::get('/{id}', [HealthletterController::class, 'showSuratSehat'])->name('show');
         Route::get('/{id}/edit', [HealthletterController::class, 'editSuratSehat'])->name('edit');
         Route::put('/{id}', [HealthletterController::class, 'updateSuratSehat'])->name('update');
@@ -305,13 +324,6 @@ Route::middleware(['auth', CheckRoleType::class . ':outlet'])
     
     // ========== ADDITIONAL ENDPOINTS ==========
     Route::get('/doctors/by-outlet', [HealthletterController::class, 'apiGetDoctor'])->name('doctors.by.outlet');
-});
-
-// ==================== API ROUTES (OUTLET DATA) ====================
-Route::middleware(['auth', CheckRoleType::class . ':outlet'])
-    ->prefix('outlet')
-    ->name('outlet.')
-    ->group(function () {
     
     // ========== LIVE SEARCH APIs ==========
     Route::prefix('api')->name('api.')->group(function () {
@@ -358,4 +370,46 @@ Route::middleware(['auth', CheckRoleType::class . ':outlet'])
             return response()->json($icds);
         })->name('icd10.search');
     });
+});
+
+// ==================== DOCTOR ROUTES ====================
+Route::middleware(['auth', CheckRoleType::class . ':doctor'])
+    ->prefix('doctor')
+    ->name('doctor.')
+    ->group(function () {
+    
+    // Dashboard
+    Route::get('/dashboard', function () {
+        return view('doctor.dashboard');
+    })->name('dashboard');
+    
+    // Doctor specific routes can be added here
+});
+
+// ==================== COMPANY ROUTES ====================
+Route::middleware(['auth', CheckRoleType::class . ':companies'])
+    ->prefix('company')
+    ->name('company.')
+    ->group(function () {
+    
+    // Dashboard
+    Route::get('/dashboard', function () {
+        return view('company.dashboard');
+    })->name('dashboard');
+    
+    // Company specific routes can be added here
+});
+
+// ==================== PATIENT ROUTES ====================
+Route::middleware(['auth', CheckRoleType::class . ':patient'])
+    ->prefix('patient')
+    ->name('patient.')
+    ->group(function () {
+    
+    // Dashboard
+    Route::get('/dashboard', function () {
+        return view('patient.dashboard');
+    })->name('dashboard');
+    
+    // Patient specific routes can be added here
 });

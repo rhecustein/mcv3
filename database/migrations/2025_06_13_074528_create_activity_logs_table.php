@@ -13,25 +13,25 @@ return new class extends Migration
     {
         Schema::create('activity_logs', function (Blueprint $table) {
             $table->id();
-
-            // Aktor aktivitas
-            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('set null');
-            $table->string('role_type')->nullable(); // contoh: admin, doctor, patient, company_admin
-
-            // Aktivitas
-            $table->string('event');                 // contoh: "login", "create_result", "export_pdf"
-            $table->text('description')->nullable(); // detail penjelasan aktivitas
-
-            // Konteks objek yang diubah (opsional)
-            $table->string('subject_type')->nullable(); // Model class, e.g. "App\Models\Result"
-            $table->unsignedBigInteger('subject_id')->nullable(); // ID dari model tersebut
-
-            // Metadata
-            $table->ipAddress('ip_address')->nullable();
-            $table->string('user_agent')->nullable();   // Browser/device info
-            $table->string('location')->nullable();     // Optional, bisa integrasi GeoIP
-
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            
+            $table->string('action'); // login, logout, create_certificate, etc.
+            $table->string('model_type')->nullable(); // Model class name
+            $table->unsignedBigInteger('model_id')->nullable(); // Model ID
+            $table->text('description');
+            $table->json('properties')->nullable(); // Additional data
+            
+            $table->string('ip_address', 45)->nullable();
+            $table->text('user_agent')->nullable();
+            $table->string('session_id')->nullable();
+            
             $table->timestamps();
+            
+            // === INDEXES ===
+            $table->index(['user_id', 'created_at']); // User activity timeline
+            $table->index(['model_type', 'model_id']); // Model-specific logs
+            $table->index('action'); // Action-based queries
+            $table->index('created_at'); // Time-based queries
         });
 
     }

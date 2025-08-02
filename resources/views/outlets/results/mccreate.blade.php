@@ -39,7 +39,7 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('outlet.results.store.mc') }}" id="mc-form">
+    <form method="POST" action="{{ route('outlet.results.mc.store ') }}" id="mc-form">
         @csrf
         <input type="hidden" name="type" value="mc">
         

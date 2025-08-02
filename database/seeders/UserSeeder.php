@@ -29,7 +29,6 @@ class UserSeeder extends Seeder
                     'last_login_at' => now(),
                     'email_verified_at' => now(),
                     'otp_code' => null,
-                    'otp_code_expired_at' => null,
                     'remember_token' => Str::random(10),
                     'updated_at' => now(),
                     'created_at' => now(), // aman untuk insert baru

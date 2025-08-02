@@ -14,42 +14,58 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
 
-            // Basic Identity
+            // === BASIC IDENTITY ===
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
-            //comapn
             $table->string('password');
 
-            // Role Type — disederhanakan & relevan
+            // === ROLE MANAGEMENT ===
             $table->enum('role_type', [
                 'superadmin',
-                'admin',          // membawahi outlet/dokter/staff
-                'outlet',         // outlet operator
+                'admin',
+                'outlet', 
                 'doctor',
-                'companies',  // membawahi pasien perusahaan
+                'companies',
                 'patient'
-            ])->nullable();
+            ])->default('patient'); // Set default role
 
-            // Optional Profile Info
-            $table->string('phone')->nullable();
+            // === PROFILE INFORMATION ===
+            $table->string('phone', 50)->nullable();
             $table->string('avatar')->nullable();
+            $table->date('birth_date')->nullable(); // Useful for patients/doctors
+            $table->enum('gender', ['male', 'female'])->nullable();
+            $table->text('address')->nullable(); // Use text for longer addresses
 
-            // Security Tracking
-            $table->string('last_ip')->nullable();
+            // === SECURITY & TRACKING ===
+            $table->string('last_ip', 45)->nullable(); // Support IPv6 (max 45 chars)
             $table->timestamp('last_login_at')->nullable();
+            $table->string('last_location')->nullable();
+            $table->timestamp('last_activity_at')->nullable(); // Better naming
+            
+            // === 2FA & OTP ===
+            $table->string('otp_code', 6)->nullable(); // Limit OTP to 6 digits
+            $table->timestamp('otp_expires_at')->nullable(); // Better naming
+            $table->boolean('two_factor_enabled')->default(false);
+            $table->text('two_factor_secret')->nullable();
 
-            // OTP & 2FA
-            $table->string('otp_code')->nullable();
-            $table->timestamp('otp_code_expired_at')->nullable();
-
-            // Session & Soft Delete
+            // === STATUS & PREFERENCES ===
             $table->boolean('is_active')->default(true);
-            $table->string('last_activity')->nullable(); // Last activity timestamp
-            $table->string('last_location')->nullable(); // Last known location (IP or coordinates)
+            $table->boolean('is_banned')->default(false); // Separate ban status
+            $table->timestamp('banned_at')->nullable();
+            $table->string('ban_reason')->nullable();
+            $table->string('timezone', 50)->default('Asia/Jakarta');
+            $table->string('locale', 5)->default('id');
+
+            // === SESSION MANAGEMENT ===
             $table->rememberToken();
             $table->timestamps();
             $table->softDeletes();
+
+            // === INDEXES FOR PERFORMANCE ===
+            $table->index(['role_type', 'is_active']); // Query by role + status
+            $table->index('last_login_at'); // For activity reports
+            $table->index('email_verified_at'); // For verification checks
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

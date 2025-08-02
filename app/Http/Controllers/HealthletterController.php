@@ -84,29 +84,34 @@ class HealthletterController extends Controller
     }
     public function createSuratSehat()
     {
-        $user = auth()->user();
-        $outlet = Outlet::where('email', $user->email)->first();
+    $user = auth()->user();
+    // Menggunakan relasi untuk mendapatkan outlet, jika ada. Jika tidak, cara lama tetap valid.
+    $outlet = $user->outlet ?? Outlet::where('email', $user->email)->first();
 
-        if (!$outlet) {
-            abort(403, 'Outlet tidak ditemukan.');
-        }
-
-        $data = [
-            'type'        => 'skb',
-            'title'       => 'Input Surat Sehat (SKB)',
-            'outlet'      => $outlet,
-            'companies'   => DB::table('companies')->orderBy('name')->get(),
-            // PERBAIKAN DI SINI: Gunakan Model Doctor dengan eager loading 'user'
-            'doctors'     => Doctor::with('user') // Eager load the 'user' relationship
-                                    ->orderBy('id') // Urutkan berdasarkan ID dokter atau kolom lain yang stabil
-                                    ->get(),
-            'templates'   => DB::table('template_results')->where('type', 'skb')->get(),
-            'todayDate'   => now()->format('Y-m-d'),
-            'nowTime'     => now()->format('H:i'),
-        ];
-
-        return view('outlets.results.skbcreate', $data);
+    if (!$outlet) {
+        abort(403, 'Outlet tidak ditemukan atau tidak terhubung dengan akun Anda.');
     }
+
+    // Mengambil semua data yang dibutuhkan untuk view
+    $data = [
+        'type'      => 'skb',
+        'title'     => 'Buat Surat Keterangan Berobat (SKB)', // TITLE DISESUAIKAN
+        'outlet'    => $outlet,
+
+        // PERBAIKAN: Gunakan Model Eloquent untuk konsistensi
+        'companies' => Company::orderBy('name')->get(),
+        
+        // Kode ini sudah bagus, menggunakan eager loading untuk efisiensi
+        'doctors'   => Doctor::with('user')->orderBy('id')->get(),
+
+        
+        // Variabel tanggal dan waktu bisa disederhanakan
+        'todayDate' => now()->format('Y-m-d'),
+        'nowTime'   => now()->format('H:i'),
+    ];
+
+    return view('outlets.results.skbcreate', $data);
+}
 
     /**
      * Menampilkan form untuk membuat Surat Keterangan Sakit (MC).
