@@ -28,7 +28,6 @@
                             <span x-show="currentStep <= index + 1" x-text="index + 1"></span>
                             <svg x-show="currentStep > index + 1" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
                         </button>
-                        {{-- FIXED: Menampilkan title dan subtitle dari data Alpine --}}
                         <div class="mt-2 w-full px-1">
                            <p class="text-xs font-semibold" :class="currentStep >= index + 1 ? 'text-slate-700' : 'text-slate-500'" x-text="step.title"></p>
                            <p class="text-xs text-slate-400" x-text="step.subtitle"></p>
@@ -60,6 +59,7 @@
         <input type="hidden" name="type" value="skb">
 
         <div class="bg-white border border-slate-200 rounded-xl shadow-lg p-8">
+            <!-- Step 1: Pasien & Kunjungan -->
             <div x-show="currentStep === 1" class="space-y-6 animate-fade-in">
                 <div class="flex items-center gap-3 mb-6">
                     <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -77,13 +77,11 @@
                                    placeholder="Cari pasien atau ketik nama baru..."
                                    value="{{ old('patient_name') }}">
                             <input type="hidden" name="patient_id" id="patient_id" value="{{ old('patient_id') }}">
-                            {{-- FIXED: ID disesuaikan menjadi "patient-suggestions" dan dikosongkan --}}
                             <div id="patient-suggestions" class="absolute z-50 bg-white border border-slate-200 mt-1 rounded-lg shadow-xl max-h-60 overflow-y-auto w-full"></div>
                         </div>
                         @error('patient_name')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
 
                         <div class="mt-2 flex items-center">
-                            {{-- FIXED: Default checked ke true --}}
                             <input type="checkbox" name="is_new_patient" id="is_new_patient" class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600" @checked(old('is_new_patient', true))>
                             <label for="is_new_patient" class="ml-2 text-sm text-slate-600">Daftarkan sebagai pasien baru</label>
                         </div>
@@ -123,6 +121,7 @@
                 </div>
             </div>
 
+            <!-- Step 2: Detail Pasien & Pemeriksaan -->
             <div x-show="currentStep === 2" x-cloak class="space-y-6 animate-fade-in">
                 <div class="flex items-center gap-3 mb-6">
                     <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -181,7 +180,6 @@
                         @error('icd_master_id')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
 
                         <div id="selected-icd-info" class="mt-3 p-4 bg-purple-50 border border-purple-200 rounded-lg @if(!old('icd_master_id')) hidden @endif">
-                            {{-- Konten diisi oleh JS, ini hanya untuk fallback jika ada validation error --}}
                              <p class="font-medium text-slate-800">Kode: <span id="icd-code-display">{{ old('icd_master_id') ? (explode(' - ', old('diagnosis_name'))[0] ?? '') : '' }}</span></p>
                              <p class="text-sm text-slate-600 mt-1">Deskripsi: <span id="icd-title-display">{{ old('icd_master_id') ? (explode(' - ', old('diagnosis_name'))[1] ?? old('diagnosis_name')) : '' }}</span></p>
                         </div>
@@ -194,6 +192,7 @@
                 </div>
             </div>
 
+            <!-- Step 3: Dokter & Opsi Final -->
             <div x-show="currentStep === 3" x-cloak class="space-y-6 animate-fade-in">
                 <div class="flex items-center gap-3 mb-6">
                     <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
@@ -202,75 +201,218 @@
                     <h3 class="text-lg font-semibold text-slate-800">Langkah 3: Dokter & Opsi Final</h3>
                 </div>
 
-                <fieldset>
-    <legend class="block text-sm font-medium leading-6 text-slate-700 mb-2">Dokter Pemeriksa</legend>
-    
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        @foreach ($doctors as $doctor)
-            <label for="doctor_{{ $doctor->id }}" 
-                   class="relative flex cursor-pointer rounded-lg border bg-white p-4 shadow-sm transition-all duration-200 hover:bg-slate-50 focus:outline-none">
-                
-                {{-- Tombol Radio yang tersembunyi, menggunakan "peer" untuk styling --}}
-                <input type="radio" name="doctor_id" id="doctor_{{ $doctor->id }}" value="{{ $doctor->id }}" 
-                       class="sr-only peer"
-                       @checked(old('doctor_id', $loop->first ? $doctor->id : '') == $doctor->id)>
-                
-                <div class="flex flex-1 items-center">
-                    {{-- Avatar atau Ikon Pengganti --}}
-                    <div class="flex-shrink-0 w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
-                        <svg class="w-7 h-7 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                        </svg>
+                <div x-data="{
+                    searchQuery: '',
+                    filteredDoctors: @js($doctors->toArray()),
+                    allDoctors: @js($doctors->toArray()),
+                    selectedDoctorId: @js(old('doctor_id', $doctors->first()?->id ?? '')),
+                    
+                    filterDoctors() {
+                        if (!this.searchQuery.trim()) {
+                            this.filteredDoctors = this.allDoctors;
+                            return;
+                        }
+                        
+                        const query = this.searchQuery.toLowerCase();
+                        this.filteredDoctors = this.allDoctors.filter(doctor => 
+                            doctor.user.name.toLowerCase().includes(query) ||
+                            (doctor.speciality && doctor.speciality.toLowerCase().includes(query)) ||
+                            (doctor.license_number && doctor.license_number.toLowerCase().includes(query))
+                        );
+                    },
+                    
+                    clearSearch() {
+                        this.searchQuery = '';
+                        this.filterDoctors();
+                    },
+                    
+                    getSelectedDoctorName() {
+                        const doctor = this.allDoctors.find(d => d.id == this.selectedDoctorId);
+                        return doctor ? doctor.user.name + ' - ' + (doctor.speciality || 'Dokter Umum') : '';
+                    }
+                }" class="space-y-6">
+
+                    <!-- Search Bar untuk Dokter -->
+                    <div class="bg-gradient-to-r from-slate-50 to-green-50 rounded-xl border border-slate-200 p-6">
+                        <label class="block text-sm font-medium text-slate-700 mb-3">
+                            <svg class="w-5 h-5 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803a7.5 7.5 0 0010.607 0z" />
+                            </svg>
+                            Cari Dokter Pemeriksa
+                        </label>
+                        <div class="relative">
+                            <input type="text" 
+                                   x-model="searchQuery" 
+                                   @input="filterDoctors()"
+                                   placeholder="Ketik nama dokter, spesialis, atau nomor lisensi..."
+                                   class="w-full pl-4 pr-10 py-3 border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-sm">
+                            <button x-show="searchQuery" 
+                                    @click="clearSearch()" 
+                                    type="button" 
+                                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <!-- Search Stats -->
+                        <div x-show="searchQuery" class="mt-3 flex items-center justify-between text-sm">
+                            <span class="text-slate-600" x-text="`Ditemukan ${filteredDoctors.length} dari ${allDoctors.length} dokter`"></span>
+                            <button @click="clearSearch()" type="button" class="text-green-600 hover:text-green-800 font-medium">
+                                Tampilkan Semua
+                            </button>
+                        </div>
                     </div>
 
-                    {{-- Nama Dokter --}}
-                    <span class="ml-4 flex flex-col">
-                        <span class="block text-sm font-semibold text-slate-900">{{ $doctor->user->name }}</span>
-                        <span class="mt-1 flex items-center text-xs text-slate-500">{{ $doctor->speciality ?? 'Dokter Umum' }}</span>
-                    </span>
-                </div>
+                    <!-- Doctor Selection -->
+                    <fieldset>
+                        <legend class="block text-sm font-medium leading-6 text-slate-700 mb-4">Pilih Dokter Pemeriksa</legend>
+                        
+                        <!-- No Results -->
+                        <div x-show="filteredDoctors.length === 0 && searchQuery" 
+                             class="text-center py-12 bg-white rounded-lg border-2 border-dashed border-slate-200">
+                            <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0118 12a8 8 0 01-8 8 8 8 0 01-8-8 8 8 0 018-8 7.962 7.962 0 015.291 2z" />
+                            </svg>
+                            <h3 class="mt-2 text-sm font-medium text-slate-900">Tidak ada dokter ditemukan</h3>
+                            <p class="mt-1 text-sm text-slate-500">Coba ubah kata kunci pencarian Anda.</p>
+                            <button @click="clearSearch()" 
+                                    type="button" 
+                                    class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
+                                <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                Reset Pencarian
+                            </button>
+                        </div>
 
-                {{-- Styling untuk Border saat terpilih --}}
-                <div class="pointer-events-none absolute -inset-px rounded-lg border-2 peer-checked:border-green-500" aria-hidden="true"></div>
-            </label>
-        @endforeach
-    </div>
+                        <!-- Doctor Grid -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <template x-for="doctor in filteredDoctors" :key="doctor.id">
+                                <label :for="`doctor_${doctor.id}`" 
+                                       class="relative group cursor-pointer rounded-xl border-2 bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1 focus:outline-none"
+                                       :class="selectedDoctorId == doctor.id ? 'border-green-500 bg-green-50 shadow-lg ring-2 ring-green-200' : 'border-slate-200 hover:border-green-300'">
+                                    
+                                    <!-- Radio Input -->
+                                    <input type="radio" 
+                                           name="doctor_id" 
+                                           :id="`doctor_${doctor.id}`" 
+                                           :value="doctor.id" 
+                                           class="sr-only"
+                                           x-model="selectedDoctorId">
+                                    
+                                    <div class="flex items-start space-x-4">
+                                        <!-- Avatar -->
+                                        <div class="flex-shrink-0">
+                                            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-green-100 via-blue-100 to-purple-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                                <svg class="w-7 h-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                                </svg>
+                                            </div>
+                                        </div>
 
-    @error('doctor_id')
-        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-    @enderror
-</fieldset>
+                                        <!-- Info -->
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-start justify-between">
+                                                <div class="flex-1">
+                                                    <h4 class="text-sm font-bold text-slate-900 leading-tight" x-text="doctor.user.name"></h4>
+                                                    <p class="text-xs text-green-600 font-medium mt-1" x-text="doctor.speciality || 'Dokter Umum'"></p>
+                                                    
+                                                    <!-- License Badge -->
+                                                    <div x-show="doctor.license_number" class="mt-2">
+                                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                                                            <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                            <span x-text="doctor.license_number"></span>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Selection Check -->
+                                                <div x-show="selectedDoctorId == doctor.id" 
+                                                     x-transition:enter="transition ease-out duration-300"
+                                                     x-transition:enter-start="opacity-0 scale-50"
+                                                     x-transition:enter-end="opacity-100 scale-100"
+                                                     class="flex-shrink-0 ml-2">
+                                                    <div class="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center shadow-lg">
+                                                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                <div class="bg-gradient-to-r from-slate-50 to-green-50 rounded-lg p-6">
-                    <label class="block text-sm font-medium leading-6 text-slate-700 mb-4">Opsi Notifikasi (Opsional)</label>
-                    <div class="space-y-4">
-                        <div x-data="{ enabled: @json(old('send_notif_wa', false)) }">
-                            <label class="flex items-center cursor-pointer">
-                                <input type="checkbox" name="send_notif_wa" x-model="enabled" class="h-5 w-5 rounded border-slate-300 text-green-600 focus:ring-green-600">
-                                <span class="ml-3 text-sm text-slate-700">Kirim Notifikasi via WhatsApp</span>
-                            </label>
-                            <div x-show="enabled" x-transition class="mt-3 ml-8">
-                                <label for="whatsapp_number" class="block text-sm font-medium leading-6 text-slate-700 mb-1.5">Nomor WhatsApp</label>
-                                <input type="text" name="whatsapp_number" id="whatsapp_number" value="{{ old('whatsapp_number') }}" class="w-full px-4 py-2.5 rounded-lg border-slate-300 shadow-sm focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" placeholder="Contoh: 6281234567890">
-                                @error('whatsapp_number')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
+                                    <!-- Hover Ring Effect -->
+                                    <div class="absolute inset-0 rounded-xl transition-all duration-300 pointer-events-none"
+                                         :class="selectedDoctorId == doctor.id ? 'ring-2 ring-green-400 ring-opacity-60' : 'group-hover:ring-2 group-hover:ring-green-300 group-hover:ring-opacity-40'"></div>
+                                </label>
+                            </template>
+                        </div>
+
+                        <!-- Selected Doctor Summary -->
+                        <div x-show="selectedDoctorId" 
+                             x-transition:enter="transition ease-out duration-300"
+                             x-transition:enter-start="opacity-0 translate-y-4"
+                             x-transition:enter-end="opacity-100 translate-y-0"
+                             class="mt-6 p-6 bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-200 rounded-xl">
+                            <div class="flex items-center space-x-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
+                                        <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-slate-900">Dokter Terpilih</h3>
+                                    <p class="text-sm text-slate-700 font-medium" x-text="getSelectedDoctorName()"></p>
+                                    <p class="text-xs text-slate-500 mt-1">Pastikan pilihan Anda sudah benar sebelum melanjutkan</p>
+                                </div>
                             </div>
                         </div>
 
-                        <div x-data="{ enabled: @json(old('send_notif_email', false)) }">
-                            <label class="flex items-center cursor-pointer">
-                                <input type="checkbox" name="send_notif_email" x-model="enabled" class="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-600">
-                                <span class="ml-3 text-sm text-slate-700">Kirim Notifikasi via Email</span>
-                            </label>
-                            <div x-show="enabled" x-transition class="mt-3 ml-8">
-                                <label for="email_address" class="block text-sm font-medium leading-6 text-slate-700 mb-1.5">Alamat Email</label>
-                                <input type="email" name="email_address" id="email_address" value="{{ old('email_address') }}" class="w-full px-4 py-2.5 rounded-lg border-slate-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" placeholder="Contoh: pasien@email.com">
-                                @error('email_address')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
+                        @error('doctor_id')
+                            <p class="mt-2 text-sm text-red-600 font-medium">{{ $message }}</p>
+                        @enderror
+                    </fieldset>
+
+                    <!-- Notification Options -->
+                    <div class="bg-gradient-to-r from-slate-50 to-green-50 rounded-lg p-6">
+                        <label class="block text-sm font-medium leading-6 text-slate-700 mb-4">Opsi Notifikasi (Opsional)</label>
+                        <div class="space-y-4">
+                            <div x-data="{ enabled: @json(old('send_notif_wa', false)) }">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="checkbox" name="send_notif_wa" x-model="enabled" class="h-5 w-5 rounded border-slate-300 text-green-600 focus:ring-green-600">
+                                    <span class="ml-3 text-sm text-slate-700">Kirim Notifikasi via WhatsApp</span>
+                                </label>
+                                <div x-show="enabled" x-transition class="mt-3 ml-8">
+                                    <label for="whatsapp_number" class="block text-sm font-medium leading-6 text-slate-700 mb-1.5">Nomor WhatsApp</label>
+                                    <input type="text" name="whatsapp_number" id="whatsapp_number" value="{{ old('whatsapp_number') }}" class="w-full px-4 py-2.5 rounded-lg border-slate-300 shadow-sm focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" placeholder="Contoh: 6281234567890">
+                                    @error('whatsapp_number')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
+                                </div>
+                            </div>
+
+                            <div x-data="{ enabled: @json(old('send_notif_email', false)) }">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="checkbox" name="send_notif_email" x-model="enabled" class="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-600">
+                                    <span class="ml-3 text-sm text-slate-700">Kirim Notifikasi via Email</span>
+                                </label>
+                                <div x-show="enabled" x-transition class="mt-3 ml-8">
+                                    <label for="email_address" class="block text-sm font-medium leading-6 text-slate-700 mb-1.5">Alamat Email</label>
+                                    <input type="email" name="email_address" id="email_address" value="{{ old('email_address') }}" class="w-full px-4 py-2.5 rounded-lg border-slate-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" placeholder="Contoh: pasien@email.com">
+                                    @error('email_address')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Navigation Buttons -->
             <div class="mt-8 pt-5 border-t border-slate-200 flex justify-between items-center">
                 <button type="button" @click="prevStep()" x-show="currentStep > 1" class="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-300 transition-all">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
@@ -300,6 +442,7 @@
     </form>
 </div>
 
+<!-- Company Modal -->
 <dialog id="modalCompany" class="rounded-xl shadow-2xl p-0 max-w-md w-full backdrop:bg-slate-900/50">
     <div class="p-6">
         <form method="POST" action="{{ route('outlet.companies.store') }}" id="company-form">
@@ -316,7 +459,6 @@
             <div class="mb-6">
                 <label for="modal_company_name" class="block text-sm font-medium text-slate-700 mb-1.5">Nama Perusahaan</label>
                 <input type="text" name="name" id="modal_company_name" class="w-full px-4 py-2.5 rounded-lg border-slate-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" required>
-                {{-- FIXED: ID disesuaikan menjadi "company-error" --}}
                 <p id="company-error" class="text-sm text-red-600 mt-1 hidden"></p>
             </div>
             <div class="flex justify-end gap-3">
@@ -335,18 +477,112 @@
 </dialog>
 
 <style>
+    /* Enhanced animations and styles */
     @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+        from { 
+            opacity: 0; 
+            transform: translateY(10px); 
+        }
+        to { 
+            opacity: 1; 
+            transform: translateY(0); 
+        }
     }
+    
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    @keyframes pulse {
+        0%, 100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.8;
+        }
+    }
+    
     .animate-fade-in {
         animation: fadeIn 0.3s ease-out;
     }
-    [x-cloak] { display: none !important; }
+    
+    .animate-slide-in-right {
+        animation: slideInRight 0.3s ease-out;
+    }
+    
+    .animate-pulse-soft {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    /* Doctor card enhancements */
+    .doctor-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .doctor-card:hover {
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 
+            0 20px 25px -5px rgba(0, 0, 0, 0.1),
+            0 10px 10px -5px rgba(0, 0, 0, 0.04),
+            0 0 0 1px rgba(34, 197, 94, 0.1);
+    }
+    
+    .doctor-card.selected {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 25px 50px -12px rgba(34, 197, 94, 0.25),
+            0 0 0 1px rgba(34, 197, 94, 0.2);
+        background: linear-gradient(135deg, rgba(34, 197, 94, 0.05) 0%, rgba(59, 130, 246, 0.05) 100%);
+    }
+    
+    /* Search input styling */
+    .search-input:focus {
+        transform: translateY(-1px);
+        box-shadow: 
+            0 10px 25px -5px rgba(34, 197, 94, 0.1),
+            0 0 0 3px rgba(34, 197, 94, 0.1);
+    }
+    
+    /* Responsive improvements */
+    @media (max-width: 640px) {
+        .doctor-card:hover {
+            transform: translateY(-2px) scale(1.01);
+        }
+    }
+    
+    /* Focus states for accessibility */
+    .doctor-card:focus-within {
+        outline: 2px solid #10b981;
+        outline-offset: 2px;
+    }
+    
+    /* Reduced motion support */
+    @media (prefers-reduced-motion: reduce) {
+        .doctor-card {
+            transition: none;
+            animation: none;
+        }
+        
+        .doctor-card:hover {
+            transform: none;
+        }
+    }
+    
+    [x-cloak] { 
+        display: none !important; 
+    }
 </style>
 @endsection
 
 @push('scripts')
-{{-- Pastikan file _scriptskb.blade.php Anda sudah menggunakan JavaScript yang telah diperbaiki --}}
 @include('outlets.results._scriptskb')
 @endpush

@@ -139,14 +139,10 @@ class HealthletterController extends Controller
             'companies' => Company::where('is_active', true)->orderBy('name')->get(['id', 'name']),
             
             // [PERBAIKAN] Ambil dokter yang HANYA ada di outlet ini dan statusnya aktif.
-            'doctors'   => Doctor::with('user:id,name') // Eager load hanya kolom yg perlu
-                                ->where('outlet_id', $outlet->id)
-                                ->whereHas('user', fn($q) => $q->where('is_active', true))
-                                ->get()
-                                ->sortBy('user.name'),
+           'doctors'   => Doctor::with('user')->orderBy('id')->get(),
 
             // Gunakan Eloquent Model jika ada (praktik lebih baik).
-            'templates' => DB::table('template_results')->where('type', 'mc')->get(),
+          
             
             // Variabel helper untuk view.
             'todayDate' => now()->format('Y-m-d'),
