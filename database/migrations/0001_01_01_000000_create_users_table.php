@@ -42,7 +42,9 @@ return new class extends Migration
             $table->timestamp('last_login_at')->nullable();
             $table->string('last_location')->nullable();
             $table->timestamp('last_activity_at')->nullable(); // Better naming
-            
+            $table->boolean('allow_multiple_sessions')->default(false);
+            $table->string('last_login_ip')->nullable();
+                    
             // === 2FA & OTP ===
             $table->string('otp_code', 6)->nullable(); // Limit OTP to 6 digits
             $table->timestamp('otp_expires_at')->nullable(); // Better naming
