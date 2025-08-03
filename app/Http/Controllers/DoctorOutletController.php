@@ -14,31 +14,38 @@ use Illuminate\Support\Str;
 class DoctorOutletController extends Controller
 {
   public function index(Request $request)
-{
-    $user = auth()->user();
-    $outlet = Outlet::where('user_id', $user->id)->first();
+    {
+        // Mengambil user yang sedang terotentikasi
+        $user = $request->user();
 
-    if (!$outlet) {
-        return redirect()->route('dashboard')->with('error', 'Outlet tidak ditemukan untuk akun ini.');
+        // Mencari outlet yang terhubung dengan user ini
+        // Sebaiknya langsung berikan error jika tidak ada untuk menghentikan eksekusi lebih awal
+        $outlet = Outlet::where('user_id', $user->id)->first();
+
+        // Guard clause: Jika tidak ada outlet, kembalikan ke dashboard dengan pesan error
+        if (!$outlet) {
+            return redirect()->route('dashboard')->with('error', 'Data outlet tidak ditemukan untuk akun Anda.');
+        }
+
+        // Mengambil data dokter melalui relasi dari outlet yang sudah ditemukan.
+        // Ini memastikan hanya dokter dari outlet tersebut yang ditampilkan.
+        $doctors = $outlet->doctors() // Asumsi ada relasi bernama 'doctors' di model Outlet
+            ->with('user') // Eager load relasi user untuk setiap dokter
+            ->withCount('results') // Menghitung jumlah 'results' untuk setiap dokter
+            ->when($request->filled('search'), function ($query) use ($request) {
+                // Pencarian ini sekarang hanya berlaku untuk dokter di dalam outlet ini
+                $query->whereHas('user', function ($q) use ($request) {
+                    $searchTerm = "%{$request->search}%";
+                    $q->where('name', 'like', $searchTerm)
+                    ->orWhere('email', 'like', $searchTerm);
+                });
+            })
+            ->latest() // Urutkan berdasarkan yang terbaru
+            ->paginate(10)
+            ->appends($request->query()); // Agar parameter pencarian tidak hilang saat pindah halaman
+
+        return view('outlets.doctors.index', compact('doctors'));
     }
-
-    $doctors = Doctor::with(['user'])
-        ->withCount(['results' => function ($query) use ($outlet) {
-            $query->where('outlet_id', $outlet->id);
-        }])
-        ->where('outlet_id', $outlet->id)
-        ->when($request->filled('search'), function ($query) use ($request) {
-            $query->whereHas('user', function ($q) use ($request) {
-                $q->where('name', 'like', "%{$request->search}%")
-                  ->orWhere('email', 'like', "%{$request->search}%");
-            });
-        })
-        ->latest()
-        ->paginate(10)
-        ->appends($request->query());
-
-    return view('outlets.doctors.index', compact('doctors'));
-}
 
     public function create()
     {

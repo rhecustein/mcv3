@@ -1,7 +1,7 @@
 @extends('layouts.app', ['header' => 'Buat Surat Keterangan Sakit'])
 
 @section('content')
-<div class="max-w-4xl mx-auto" x-data="formWizard()">
+<div class="max-w-6xl mx-auto" x-data="formWizard()">
 
     <div class="text-center mb-8">
         <h1 class="text-3xl font-bold text-slate-800">Buat Surat Keterangan Sakit (MC)</h1>

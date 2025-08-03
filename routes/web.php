@@ -23,6 +23,9 @@ use App\Http\Controllers\DocumentQueueController;
 use App\Http\Controllers\PublicResultController;
 use App\Http\Controllers\ReportManagementController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\LegacyResultController;
+use App\Http\Controllers\OutletProfileController;
+use App\Models\Result;
 use App\Models\Patient;
 use App\Models\Company;
 use App\Models\IcdMaster;
@@ -225,6 +228,22 @@ Route::middleware(['auth', CheckRoleType::class . ':outlet'])
     Route::get('/patients', [PatientController::class, 'index'])->name('patients.index');
     Route::get('/statistics', [StatisticsManagementController::class, 'index'])->name('statistics.index');
     
+    // ========== OUTLET PROFILE MANAGEMENT ==========
+    Route::prefix('profile')->name('profile.')->group(function () {
+        Route::get('/', [OutletProfileController::class, 'show'])->name('show');
+        Route::get('/edit', [OutletProfileController::class, 'edit'])->name('edit');
+        Route::put('/update', [OutletProfileController::class, 'update'])->name('update');
+        Route::put('/password', [OutletProfileController::class, 'updatePassword'])->name('password');
+        Route::put('/location', [OutletProfileController::class, 'updateLocation'])->name('location');
+        Route::get('/api', [OutletProfileController::class, 'apiProfile'])->name('api');
+        
+        // Settings routes
+        Route::get('/settings', [OutletProfileController::class, 'settings'])->name('settings');
+        Route::get('/activity', [OutletProfileController::class, 'activity'])->name('activity');
+        Route::get('/notifications', [OutletProfileController::class, 'notifications'])->name('notifications');
+        Route::put('/notifications', [OutletProfileController::class, 'updateNotifications'])->name('notifications.update');
+    });
+
     // ========== HEALTH LETTERS MANAGEMENT ==========
     Route::prefix('healthletters')->name('healthletter.')->group(function () {
         Route::get('/', [HealthletterController::class, 'index'])->name('index');
@@ -282,7 +301,26 @@ Route::middleware(['auth', CheckRoleType::class . ':outlet'])
         Route::get('/', [ResultController::class, 'index'])->name('index');
         Route::get('/create', [ResultController::class, 'create'])->name('create');
     });
-    
+
+    // ========== LEGACY RESULTS MANAGEMENT ==========
+    Route::prefix('legacy-results')->name('legacy-results.')->group(function () {
+        // Main legacy results routes
+        Route::get('/', [LegacyResultController::class, 'index'])->name('index');
+        Route::get('/{id}', [LegacyResultController::class, 'show'])->name('show');
+        
+        // Trash management
+        Route::get('/trash/index', [LegacyResultController::class, 'trash'])->name('trash');
+        Route::patch('/trash/{id}/restore', [LegacyResultController::class, 'restore'])->name('restore');
+        Route::delete('/trash/{id}/force-delete', [LegacyResultController::class, 'forceDelete'])->name('force-delete');
+        
+        // Bulk operations
+        Route::post('/bulk-action', [LegacyResultController::class, 'bulkAction'])->name('bulk-action');
+        
+        // Export and statistics
+        Route::get('/export/csv', [LegacyResultController::class, 'export'])->name('export');
+        Route::get('/api/statistics', [LegacyResultController::class, 'statistics'])->name('statistics');
+    });
+        
     // ========== REPORTS MANAGEMENT ==========
     Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('/', [ReportManagementController::class, 'index'])->name('index');
@@ -319,6 +357,13 @@ Route::middleware(['auth', CheckRoleType::class . ':outlet'])
         Route::post('/{id}/logout', [SessionLoginController::class, 'forceLogoutOutlet'])->name('forceLogout');
     });
     
+    // ========== PROFILE MANAGEMENT ==========
+    Route::prefix('profile')->name('profile.')->group(function () {
+        // Profile show route with encrypted ID (for superadmin)
+        Route::get('/view/{user}', [ProfileController::class, 'show'])->name('show');
+        Route::get('/sessions', [ProfileController::class, 'sessionLogs'])->name('sessions');
+    });
+
     // ========== COMPANY MANAGEMENT ==========
     Route::post('/companies', [HealthletterController::class, 'storeCompany'])->name('companies.store');
     
