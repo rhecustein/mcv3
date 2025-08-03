@@ -20,7 +20,7 @@
             <h1 class="text-3xl font-bold tracking-tight text-slate-900">Manajemen Paket</h1>
             <p class="mt-2 text-slate-500">Buat, kelola, dan atur paket langganan untuk perusahaan klien.</p>
         </div>
-        <a href="{{ route('packages.create') }}" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-all duration-200">
+        <a href="{{ route('superadmin.packages.create') }}" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-all duration-200">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" /></svg>
             <span>Tambah Paket Baru</span>
         </a>
@@ -104,8 +104,8 @@
                     </ul>
 
                     <div class="mt-8 flex flex-col gap-2">
-                        <a href="{{ route('packages.edit', $package) }}" class="w-full text-center px-4 py-2.5 text-sm {{ $isPopular ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-white text-blue-600 ring-1 ring-inset ring-blue-200 hover:bg-blue-50' }} rounded-md font-semibold transition">Edit Paket</a>
-                        <form action="{{ route('packages.destroy', $package) }}" method="POST" class="w-full" onsubmit="return confirm('Yakin ingin menghapus paket ini?')">
+                        <a href="{{ route('superadmin.packages.edit', $package) }}" class="w-full text-center px-4 py-2.5 text-sm {{ $isPopular ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-white text-blue-600 ring-1 ring-inset ring-blue-200 hover:bg-blue-50' }} rounded-md font-semibold transition">Edit Paket</a>
+                        <form action="{{ route('superadmin.packages.destroy', $package) }}" method="POST" class="w-full" onsubmit="return confirm('Yakin ingin menghapus paket ini?')">
                             @csrf @method('DELETE')
                              <button type="submit" class="w-full text-center px-4 py-2.5 text-sm text-slate-600 rounded-md font-semibold hover:bg-slate-200 transition">Hapus</button>
                         </form>

@@ -84,11 +84,11 @@
                     </div>
                     <div class="border-t border-slate-200/80 !my-3"></div>
                     <div class="space-y-2">
-                         <a href="{{ route('outlets.create') }}" class="flex items-center w-full p-3 rounded-lg text-slate-600 bg-slate-500/5 hover:bg-slate-500/10 hover:text-blue-600 font-medium transition-colors duration-200">
+                         <a href="{{ route('superadmin.outlets.create') }}" class="flex items-center w-full p-3 rounded-lg text-slate-600 bg-slate-500/5 hover:bg-slate-500/10 hover:text-blue-600 font-medium transition-colors duration-200">
                             <svg class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             <span>Tambah Outlet Baru</span>
                         </a>
-                        <a href="{{ route('package-transactions.index') }}" class="flex items-center w-full p-3 rounded-lg text-slate-600 bg-slate-500/5 hover:bg-slate-500/10 hover:text-blue-600 font-medium transition-colors duration-200">
+                        <a href="{{ route('superadmin.package-transactions.index') }}" class="flex items-center w-full p-3 rounded-lg text-slate-600 bg-slate-500/5 hover:bg-slate-500/10 hover:text-blue-600 font-medium transition-colors duration-200">
                            <svg class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h6m-6 2.25h6M3 13.5l3 3m0 0l3-3m-3 3v-6m1.5 9H21a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H3.75A2.25 2.25 0 001.5 6.75v10.5a2.25 2.25 0 002.25 2.25z" /></svg>
                            <span>Lihat Transaksi</span>
                         </a>

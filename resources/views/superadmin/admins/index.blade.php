@@ -9,7 +9,7 @@
             <h1 class="text-3xl font-bold tracking-tight text-slate-900">Manajemen Admin</h1>
             <p class="mt-2 text-slate-500">Kelola semua akun administrator regional di sistem.</p>
         </div>
-        <a href="{{ route('admins.create') }}"
+        <a href="{{ route('superadmin.admins.create') }}"
            class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors whitespace-nowrap">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" /></svg>
             <span>Tambah Admin</span>
@@ -44,7 +44,7 @@
                         <option value="{{ $prov }}" {{ request('province') == $prov ? 'selected' : '' }}>{{ $prov }}</option>
                     @endforeach
                 </select>
-                <a href="{{ route('admins.index') }}" title="Reset Filter" class="px-4 py-2.5 text-slate-600 rounded-md text-sm hover:bg-slate-200 transition border border-slate-300">Reset</a>
+                <a href="{{ route('superadmin.admins.index') }}" title="Reset Filter" class="px-4 py-2.5 text-slate-600 rounded-md text-sm hover:bg-slate-200 transition border border-slate-300">Reset</a>
             </div>
         </form>
     </div>
@@ -71,12 +71,12 @@
                             </button>
                             <div x-show="open" @click.away="open = false" x-transition class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
                                 <div class="py-1" role="menu" aria-orientation="vertical">
-                                    <a href="{{ route('admins.edit', $admin) }}" class="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100" role="menuitem">
+                                    <a href="{{ route('superadmin.admins.edit', $admin) }}" class="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100" role="menuitem">
                                         <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>
                                         <span>Edit</span>
                                     </a>
                                     @if($admin->user->is_active)
-                                        <form action="{{ route('admins.ban', $admin->user_id) }}" method="POST" onsubmit="return confirm('Yakin ingin menonaktifkan user ini?')" class="w-full">
+                                        <form action="{{ route('superadmin.admins.ban', $admin->user_id) }}" method="POST" onsubmit="return confirm('Yakin ingin menonaktifkan user ini?')" class="w-full">
                                             @csrf
                                             <button type="submit" class="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-yellow-600 hover:bg-slate-100" role="menuitem">
                                                 <svg class="w-4 h-4 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
@@ -84,7 +84,7 @@
                                             </button>
                                         </form>
                                     @else
-                                        <form action="{{ route('admins.unban', $admin->user_id) }}" method="POST" onsubmit="return confirm('Aktifkan kembali user ini?')" class="w-full">
+                                        <form action="{{ route('superadmin.admins.unban', $admin->user_id) }}" method="POST" onsubmit="return confirm('Aktifkan kembali user ini?')" class="w-full">
                                             @csrf
                                             <button type="submit" class="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-green-600 hover:bg-slate-100" role="menuitem">
                                                 <svg class="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -93,7 +93,7 @@
                                         </form>
                                     @endif
                                     <div class="border-t border-slate-200 my-1"></div>
-                                    <form action="{{ route('admins.destroy', $admin) }}" method="POST" onsubmit="return confirm('PERINGATAN: Tindakan ini tidak dapat diurungkan. Yakin ingin menghapus permanen admin ini?')" class="w-full">
+                                    <form action="{{ route('superadmin.admins.destroy', $admin) }}" method="POST" onsubmit="return confirm('PERINGATAN: Tindakan ini tidak dapat diurungkan. Yakin ingin menghapus permanen admin ini?')" class="w-full">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-slate-100" role="menuitem">

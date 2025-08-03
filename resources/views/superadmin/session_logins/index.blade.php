@@ -59,7 +59,7 @@
                 <option value="blocked" @selected(request('status') === 'blocked')>Diblokir</option>
             </select>
             <button type="submit" class="w-full md:w-auto px-4 py-2 bg-slate-800 text-white rounded-md text-sm font-semibold hover:bg-slate-700 transition">Filter</button>
-            <a href="{{ route('session-logins.index') }}" class="w-full md:w-auto text-center px-4 py-2 bg-slate-200 text-slate-700 rounded-md text-sm font-medium hover:bg-slate-300 transition">Reset</a>
+            <a href="{{ route('superadmin.session-logins.index') }}" class="w-full md:w-auto text-center px-4 py-2 bg-slate-200 text-slate-700 rounded-md text-sm font-medium hover:bg-slate-300 transition">Reset</a>
         </form>
     </div>
 

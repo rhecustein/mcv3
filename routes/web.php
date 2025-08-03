@@ -439,7 +439,7 @@ Route::middleware(['auth', CheckRoleType::class . ':companies'])
     
     // Dashboard
     Route::get('/dashboard', function () {
-        return view('company.dashboard');
+        return view('companies.dashboard');
     })->name('dashboard');
     
     // Company specific routes can be added here

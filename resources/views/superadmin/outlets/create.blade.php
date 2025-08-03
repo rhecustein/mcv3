@@ -12,7 +12,7 @@
 @section('content')
 <div class="max-w-5xl mx-auto">
     <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
-        <form action="{{ route('outlets.store') }}" method="POST">
+        <form action="{{ route('superadmin.outlets.store') }}" method="POST">
             @csrf
             <div class="mb-8 pb-6 border-b border-slate-200">
                 <h1 class="text-2xl font-bold text-slate-900">Daftarkan Outlet Baru</h1>

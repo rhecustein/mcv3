@@ -126,7 +126,7 @@
 
             <!-- Tombol Aksi Form Utama -->
             <div class="mt-10 pt-6 border-t border-slate-200 flex justify-between items-center">
-                <a href="{{ route('outlets.index') }}" class="text-sm font-semibold text-slate-600 hover:text-slate-900 transition hover:underline">
+                <a href="{{ route('superadmin.outlets.index') }}" class="text-sm font-semibold text-slate-600 hover:text-slate-900 transition hover:underline">
                     &larr; Batal
                 </a>
                 <button type="submit" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 transition-all duration-200">

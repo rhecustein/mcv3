@@ -29,7 +29,7 @@
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" /></svg>
                 </button>
             </div>
-            <a href="{{ route('doctors.create') }}" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-all duration-200">
+            <a href="{{ route('superadmin.doctors.create') }}" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-all duration-200">
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" /></svg>
                 <span>Tambah Dokter</span>
             </a>
@@ -67,7 +67,7 @@
                 <option value="0" @selected(request('is_active') === '0')>Nonaktif</option>
             </select>
             <button type="submit" class="w-full md:w-auto px-4 py-2 bg-slate-800 text-white rounded-md text-sm font-semibold hover:bg-slate-700 transition">Filter</button>
-            <a href="{{ route('doctors.index') }}" class="w-full md:w-auto text-center px-4 py-2 bg-slate-200 text-slate-700 rounded-md text-sm font-medium hover:bg-slate-300 transition">Reset</a>
+            <a href="{{ route('superadmin.doctors.index') }}" class="w-full md:w-auto text-center px-4 py-2 bg-slate-200 text-slate-700 rounded-md text-sm font-medium hover:bg-slate-300 transition">Reset</a>
         </form>
     </div>
     
@@ -128,11 +128,11 @@
                                             </button>
                                             <div x-show="open" @click.away="open = false" x-cloak x-transition class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
                                                 <div class="py-1" role="menu">
-                                                    <a href="{{ route('doctors.edit', $doctor) }}" class="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100" role="menuitem">
+                                                    <a href="{{ route('superadmin.doctors.edit', $doctor) }}" class="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100" role="menuitem">
                                                         <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>
                                                         <span>Edit</span>
                                                     </a>
-                                                    <form action="{{ route('doctors.ban', $doctor->user_id) }}" method="POST" onsubmit="return confirm('Yakin ingin mengubah status dokter ini?')" class="w-full">
+                                                    <form action="{{ route('superadmin.doctors.ban', $doctor->user_id) }}" method="POST" onsubmit="return confirm('Yakin ingin mengubah status dokter ini?')" class="w-full">
                                                         @csrf
                                                         <button type="submit" class="w-full text-left flex items-center gap-3 px-4 py-2 text-sm {{ $doctor->user->is_active ? 'text-yellow-700 hover:bg-slate-100' : 'text-green-600 hover:bg-slate-100' }}" role="menuitem">
                                                             @if($doctor->user->is_active)
@@ -145,7 +145,7 @@
                                                         </button>
                                                     </form>
                                                     <div class="border-t border-slate-200 my-1"></div>
-                                                    <form action="{{ route('doctors.destroy', $doctor) }}" method="POST" onsubmit="return confirm('PERINGATAN: Yakin ingin menghapus permanen dokter ini?')" class="w-full">
+                                                    <form action="{{ route('superadmin.doctors.destroy', $doctor) }}" method="POST" onsubmit="return confirm('PERINGATAN: Yakin ingin menghapus permanen dokter ini?')" class="w-full">
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit" class="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50" role="menuitem">
@@ -192,11 +192,11 @@
                                     </button>
                                     <div x-show="open" @click.away="open = false" x-cloak x-transition class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
                                         <div class="py-1" role="menu">
-                                            <a href="{{ route('doctors.edit', $doctor) }}" class="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900" role="menuitem">
+                                            <a href="{{ route('superadmin.doctors.edit', $doctor) }}" class="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900" role="menuitem">
                                                 <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>
                                                 Edit
                                             </a>
-                                            <form action="{{ route('doctors.destroy', $doctor) }}" method="POST">
+                                            <form action="{{ route('superadmin.doctors.destroy', $doctor) }}" method="POST">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900" role="menuitem">
