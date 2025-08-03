@@ -17,6 +17,7 @@ return new class extends Migration
             // Kolom 'user_id' ini mungkin tidak diperlukan lagi jika Anda menggunakan 'causer'.
             // Anda bisa menghapusnya jika 'causer' sudah cukup untuk menyimpan data pengguna.
             // $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->unsignedBigInteger('user_id')->nullable();
 
             // === PERBAIKAN ===
             // Menambahkan kolom 'causer_id' dan 'causer_type' (polymorphic relationship).
