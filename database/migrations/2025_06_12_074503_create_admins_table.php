@@ -16,9 +16,6 @@ return new class extends Migration
 
             // Relasi ke tabel users (akun login)
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-
-            // Relasi ke tabel outlet (admin wilayah)
-            $table->foreignId('outlet_id')->nullable()->constrained('outlets')->onDelete('set null');
             // Informasi wilayah atau area kerja admin
             $table->string('region_name');      // contoh: "Jakarta Selatan"
             $table->string('province')->nullable(); // opsional jika provinsi digunakan
