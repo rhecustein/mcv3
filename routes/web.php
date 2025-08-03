@@ -13,7 +13,6 @@ use App\Http\Controllers\SessionLoginController;
 use App\Http\Controllers\TemplateResultController;
 use App\Http\Controllers\PackageController;
 use App\Http\Controllers\PackageTransactionController;
-use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\StatisticsManagementController;
 use App\Http\Controllers\PatientController;
 use App\Http\Middleware\CheckRoleType;
@@ -25,6 +24,8 @@ use App\Http\Controllers\ReportManagementController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\LegacyResultController;
 use App\Http\Controllers\OutletProfileController;
+use App\Http\Controllers\CompanyClientController;
+
 use App\Models\Result;
 use App\Models\Patient;
 use App\Models\Company;
@@ -63,6 +64,16 @@ Route::get('/verify/{code}', [PublicResultController::class, 'verify'])
 
 // Authentication routes
 require __DIR__.'/auth.php';
+
+// routes/web.php - tambahkan untuk session management
+Route::middleware('auth')->group(function () {
+    Route::post('/auth/force-logout-others', [AuthenticatedSessionController::class, 'forceLogoutOtherSessions'])
+        ->name('auth.force-logout-others');
+    Route::get('/auth/active-sessions', [AuthenticatedSessionController::class, 'getActiveSessions'])
+        ->name('auth.active-sessions');
+    Route::get('/auth/check-session', [AuthenticatedSessionController::class, 'checkSession'])
+        ->name('auth.check-session');
+});
 
 // ==================== COMMON AUTHENTICATED ROUTES ====================
 Route::middleware(['auth', EnsureSingleSession::class])->group(function () {
@@ -166,9 +177,9 @@ Route::middleware(['auth', 'can:isSuperadmin'])
     
     // ========== STATISTICS & ANALYTICS ==========
     Route::prefix('statistics')->name('statistics.')->group(function () {
-        Route::get('/', [StatisticsController::class, 'index'])->name('index');
-        Route::get('/leaderboard', [StatisticsController::class, 'leaderboard'])->name('leaderboard');
-        Route::get('/api/leaderboard', [StatisticsController::class, 'getLeaderboard'])->name('api.leaderboard');
+        Route::get('/', [StatisticsManagementController::class, 'index'])->name('index');
+        Route::get('/leaderboard', [StatisticsManagementController::class, 'leaderboard'])->name('leaderboard');
+        Route::get('/api/leaderboard', [StatisticsManagementController::class, 'getLeaderboard'])->name('api.leaderboard');
     });
     
     // ========== PACKAGE MANAGEMENT ==========
@@ -437,12 +448,84 @@ Route::middleware(['auth', CheckRoleType::class . ':companies'])
     ->name('company.')
     ->group(function () {
     
-    // Dashboard
-    Route::get('/dashboard', function () {
-        return view('companies.dashboard');
-    })->name('dashboard');
+    // ========== DASHBOARD ==========
+    Route::get('/dashboard', [CompanyClientController::class, 'dashboard'])->name('dashboard');
     
-    // Company specific routes can be added here
+    // ========== EMPLOYEE HEALTH MANAGEMENT ==========
+    Route::prefix('patients')->name('patients.')->group(function () {
+        Route::get('/', [CompanyClientController::class, 'patients'])->name('index');
+        Route::get('/export', [CompanyClientController::class, 'exportPatients'])->name('export');
+        Route::get('/{patient}', [CompanyClientController::class, 'showPatient'])->name('show');
+    });
+    
+    // ========== HEALTH HISTORY ==========
+    Route::prefix('health-history')->name('health-history.')->group(function () {
+        Route::get('/', [CompanyClientController::class, 'healthHistory'])->name('index');
+        Route::get('/patient/{patient}', [CompanyClientController::class, 'patientHealthHistory'])->name('patient');
+        Route::get('/export', [CompanyClientController::class, 'exportHealthHistory'])->name('export');
+    });
+    
+    // ========== HEALTH REPORTS ==========
+    Route::prefix('reports')->name('reports.')->group(function () {
+        Route::get('/', [CompanyClientController::class, 'reports'])->name('index');
+        Route::get('/monthly', [CompanyClientController::class, 'monthlyReport'])->name('monthly');
+        Route::get('/export', [CompanyClientController::class, 'exportReport'])->name('export');
+        Route::get('/health-summary', [CompanyClientController::class, 'healthSummary'])->name('health-summary');
+    });
+    
+    // ========== STATISTICS & ANALYTICS ==========
+    Route::prefix('statistics')->name('statistics.')->group(function () {
+        Route::get('/', [CompanyClientController::class, 'statistics'])->name('index');
+        Route::get('/trends', [CompanyClientController::class, 'healthTrends'])->name('trends');
+        Route::get('/api/chart-data', [CompanyClientController::class, 'getChartData'])->name('api.chart');
+    });
+    
+    // ========== CERTIFICATES & DOCUMENTS ==========
+    Route::prefix('certificates')->name('certificates.')->group(function () {
+        Route::get('/skb', [CompanyClientController::class, 'healthCertificates'])->name('skb');
+        Route::get('/mc', [CompanyClientController::class, 'medicalCertificates'])->name('mc');
+        Route::get('/download/{result}', [CompanyClientController::class, 'downloadCertificate'])->name('download');
+        Route::get('/verify/{code}', [CompanyClientController::class, 'verifyCertificate'])->name('verify');
+    });
+    
+    // ========== OUTLET MANAGEMENT ==========
+    Route::prefix('outlets')->name('outlets.')->group(function () {
+        Route::get('/', [CompanyClientController::class, 'outlets'])->name('index');
+        Route::get('/performance', [CompanyClientController::class, 'outletPerformance'])->name('performance');
+        Route::get('/{outlet}/details', [CompanyClientController::class, 'outletDetails'])->name('details');
+    });
+    
+    // ========== PROFILE MANAGEMENT ==========
+    Route::prefix('profile')->name('profile.')->group(function () {
+        Route::get('/', [CompanyClientController::class, 'profile'])->name('show');
+        Route::get('/edit', [CompanyClientController::class, 'editProfile'])->name('edit');
+        Route::put('/update', [CompanyClientController::class, 'updateProfile'])->name('update');
+    });
+    
+    // ========== SETTINGS ==========
+    Route::prefix('settings')->name('settings.')->group(function () {
+        Route::get('/', [CompanyClientController::class, 'settings'])->name('index');
+        Route::get('/notifications', [CompanyClientController::class, 'notifications'])->name('notifications');
+        Route::put('/notifications', [CompanyClientController::class, 'updateNotifications'])->name('notifications.update');
+        Route::get('/security', [CompanyClientController::class, 'security'])->name('security');
+        Route::put('/password', [CompanyClientController::class, 'updatePassword'])->name('password');
+    });
+    
+    // ========== SUPPORT ==========
+    Route::prefix('support')->name('support.')->group(function () {
+        Route::get('/', [CompanyClientController::class, 'support'])->name('index');
+        Route::get('/faq', [CompanyClientController::class, 'faq'])->name('faq');
+        Route::get('/contact', [CompanyClientController::class, 'contact'])->name('contact');
+        Route::post('/ticket', [CompanyClientController::class, 'createTicket'])->name('ticket');
+    });
+    
+    // ========== API ENDPOINTS ==========
+    Route::prefix('api')->name('api.')->group(function () {
+        Route::get('/dashboard-stats', [CompanyClientController::class, 'getDashboardStats'])->name('dashboard.stats');
+        Route::get('/patient-health/{patient}', [CompanyClientController::class, 'getPatientHealth'])->name('patient.health');
+        Route::get('/health-trends', [CompanyClientController::class, 'getHealthTrends'])->name('health.trends');
+        Route::get('/outlet-stats', [CompanyClientController::class, 'getOutletStats'])->name('outlet.stats');
+    });
 });
 
 // ==================== PATIENT ROUTES ====================

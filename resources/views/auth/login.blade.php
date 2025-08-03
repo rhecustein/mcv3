@@ -124,9 +124,68 @@
                 transform: translateY(0);
             }
         }
+
+        .force-login-banner {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            animation: slideInFromTop 0.5s ease-out;
+        }
+
+        @keyframes slideInFromTop {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .force-login-checkbox {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            border: 2px solid #dc2626;
+        }
+
+        .force-login-checkbox:checked {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        }
+
+        .pulse-warning {
+            animation: pulseWarning 2s ease-in-out infinite;
+        }
+
+        @keyframes pulseWarning {
+            0%, 100% { 
+                box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+            }
+            50% { 
+                box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+            }
+        }
     </style>
 </head>
 <body class="min-h-screen font-sans antialiased text-slate-800">
+
+    <!-- Session Warning Banner -->
+    @if(session('warning') && session('show_force_login'))
+    <div id="session-warning-banner" class="force-login-banner text-white p-4 text-center relative overflow-hidden">
+        <div class="absolute inset-0 bg-black opacity-10"></div>
+        <div class="relative z-10">
+            <div class="flex items-center justify-center gap-2 mb-2">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+                <strong>Sesi Sudah Aktif</strong>
+            </div>
+            <p class="text-sm">{{ session('warning') }}</p>
+            <button onclick="dismissBanner()" class="absolute top-2 right-2 text-white hover:text-gray-200">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    </div>
+    @endif
 
     <!-- Alert Container -->
     <div id="alert-container" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4">
@@ -179,7 +238,7 @@
                 </div>
                 
                 <!-- Login Card -->
-                <div id="login-card" class="bg-white/70 backdrop-blur-xl border border-slate-200/80 shadow-2xl rounded-2xl p-8">
+                <div id="login-card" class="bg-white/70 backdrop-blur-xl border border-slate-200/80 shadow-2xl rounded-2xl p-8 {{ session('show_force_login') ? 'pulse-warning' : '' }}">
                     
                     <!-- Permission State -->
                     <div id="permission-state" class="text-center animate-fade-in-up">
@@ -213,8 +272,43 @@
 
                     <!-- Login Form State -->
                     <div id="login-form-state" class="hidden animate-fade-in-up">
-                        <h2 class="text-2xl font-bold text-center text-slate-800 mb-2">Selamat Datang Kembali</h2>
-                        <p class="text-center text-sm text-slate-500 mb-8">Login untuk melanjutkan ke dasbor Anda.</p>
+                        <h2 class="text-2xl font-bold text-center text-slate-800 mb-2">
+                            @if(session('show_force_login'))
+                                Konfirmasi Login
+                            @else
+                                Selamat Datang Kembali
+                            @endif
+                        </h2>
+                        <p class="text-center text-sm text-slate-500 mb-8">
+                            @if(session('show_force_login'))
+                                Pilih opsi login untuk melanjutkan.
+                            @else
+                                Login untuk melanjutkan ke dasbor Anda.
+                            @endif
+                        </p>
+                        
+                        <!-- Session Conflict Notice -->
+                        @if(session('show_force_login'))
+                        <div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-sm font-medium text-amber-800">Sesi Aktif Terdeteksi</h3>
+                                    <div class="mt-2 text-sm text-amber-700">
+                                        <p>Akun Anda sedang digunakan di device/browser lain. Anda dapat:</p>
+                                        <ul class="mt-2 list-disc list-inside space-y-1">
+                                            <li>Login normal (sesi lain akan tetap aktif)</li>
+                                            <li>Force login (akan memutuskan sesi lain)</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
                         
                         <form method="POST" action="{{ route('login') }}" class="space-y-6" id="login-form">
                             @csrf
@@ -270,11 +364,48 @@
                                     <a href="{{ route('password.request') }}" class="text-sm font-medium text-blue-600 hover:text-blue-500">Lupa sandi?</a>
                                 @endif
                             </div>
+
+                            <!-- Force Login Option -->
+                            @if(session('show_force_login'))
+                            <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                                <div class="flex items-start">
+                                    <div class="flex items-center h-5">
+                                        <input id="force_login" name="force_login" type="checkbox" value="1" class="h-4 w-4 text-red-600 border-red-300 rounded focus:ring-red-600 force-login-checkbox">
+                                    </div>
+                                    <div class="ml-3">
+                                        <label for="force_login" class="text-sm font-medium text-red-800 cursor-pointer">
+                                            <div class="flex items-center gap-2">
+                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5.636 5.636a9 9 0 1012.728 0M12 3v9" />
+                                                </svg>
+                                                Force Login (Putuskan Sesi Lain)
+                                            </div>
+                                        </label>
+                                        <p class="text-xs text-red-700 mt-1">
+                                            Dengan mengaktifkan opsi ini, semua sesi aktif lainnya akan otomatis terputus dan Anda akan login dengan sesi baru.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
                             
                             <!-- Submit Button -->
-                            <button type="submit" id="login-btn" class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-lg shadow-blue-500/30 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
-                                Masuk
-                            </button>
+                            <div class="space-y-3">
+                                @if(session('show_force_login'))
+                                <!-- Two button options when force login is available -->
+                                <button type="submit" id="normal-login-btn" class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-lg shadow-blue-500/30 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                                    Login Normal
+                                </button>
+                                <button type="submit" id="force-login-btn" onclick="enableForceLogin()" class="w-full py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-lg shadow-red-500/30 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none hidden">
+                                    Force Login (Putuskan Sesi Lain)
+                                </button>
+                                @else
+                                <!-- Normal single login button -->
+                                <button type="submit" id="login-btn" class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-lg shadow-blue-500/30 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                                    Masuk
+                                </button>
+                                @endif
+                            </div>
                         </form>
 
                         <!-- Development Mode Indicator -->
@@ -284,9 +415,21 @@
                                     <svg class="h-4 w-4 text-yellow-400 mr-2" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                                     </svg>
-                                    <p class="text-xs text-yellow-800">Mode Pengembangan - Validasi lokasi dilewati</p>
+                                    <p class="text-xs text-yellow-800">Mode Pengembangan - Multiple sessions diizinkan</p>
                                 </div>
                             </div>
+                        @endif
+
+                        <!-- Session Management Help -->
+                        @if(session('show_force_login'))
+                        <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <h4 class="text-sm font-medium text-blue-800 mb-2">ℹ️ Bantuan Session Management</h4>
+                            <div class="text-xs text-blue-700 space-y-1">
+                                <p><strong>Login Normal:</strong> Anda akan masuk, tapi sesi lain tetap aktif (multiple sessions).</p>
+                                <p><strong>Force Login:</strong> Sesi lain akan diputuskan secara otomatis dan hanya sesi baru yang aktif.</p>
+                                <p class="text-blue-600 italic">Rekomendasi: Gunakan Force Login jika ini device pribadi Anda.</p>
+                            </div>
+                        </div>
                         @endif
                     </div>
                 </div>
@@ -297,6 +440,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const IS_LOCAL = @json(app()->environment('local'));
+            const SHOW_FORCE_LOGIN = @json(session('show_force_login', false));
             const permissionState = document.getElementById('permission-state');
             const loadingState = document.getElementById('loading-state');
             const loginFormState = document.getElementById('login-form-state');
@@ -305,7 +449,7 @@
             const latInput = document.getElementById('latitude');
             const lonInput = document.getElementById('longitude');
             const loginForm = document.getElementById('login-form');
-            const loginBtn = document.getElementById('login-btn');
+            const forceLoginCheckbox = document.getElementById('force_login');
 
             // Check for server-side errors and show alerts
             @if ($errors->any())
@@ -328,6 +472,42 @@
             @if (session('error'))
                 showAlert('{{ addslashes(session('error')) }}', 'error');
             @endif
+
+            @if (session('warning'))
+                showAlert('{{ addslashes(session('warning')) }}', 'warning');
+            @endif
+
+            // Force login functionality
+            window.enableForceLogin = function() {
+                if (forceLoginCheckbox) {
+                    forceLoginCheckbox.checked = true;
+                }
+            };
+
+            // Monitor force login checkbox changes
+            if (forceLoginCheckbox) {
+                forceLoginCheckbox.addEventListener('change', function() {
+                    const normalBtn = document.getElementById('normal-login-btn');
+                    const forceBtn = document.getElementById('force-login-btn');
+                    
+                    if (this.checked) {
+                        normalBtn.classList.add('hidden');
+                        forceBtn.classList.remove('hidden');
+                    } else {
+                        normalBtn.classList.remove('hidden');
+                        forceBtn.classList.add('hidden');
+                    }
+                });
+            }
+
+            // Dismiss banner function
+            window.dismissBanner = function() {
+                const banner = document.getElementById('session-warning-banner');
+                if (banner) {
+                    banner.style.animation = 'slideUp 0.3s ease-in forwards';
+                    setTimeout(() => banner.remove(), 300);
+                }
+            };
 
             // Alert System
             function showAlert(message, type = 'error', duration = 5000) {
@@ -437,17 +617,39 @@
                     return;
                 }
 
-                // Show loading state
-                loginBtn.classList.add('btn-loading');
-                loginBtn.disabled = true;
+                // Determine which button was clicked
+                const clickedButton = e.submitter;
+                const isForceLogin = clickedButton && clickedButton.id === 'force-login-btn';
+                
+                // Show appropriate loading state
+                if (isForceLogin) {
+                    clickedButton.classList.add('btn-loading');
+                    clickedButton.disabled = true;
+                    showAlert('Memutuskan sesi lain dan login...', 'warning', 0);
+                } else {
+                    const normalBtn = document.getElementById('normal-login-btn') || document.getElementById('login-btn');
+                    if (normalBtn) {
+                        normalBtn.classList.add('btn-loading');
+                        normalBtn.disabled = true;
+                    }
+                }
                 
                 // Timeout handler
                 setTimeout(() => {
-                    if (loginBtn.classList.contains('btn-loading')) {
-                        loginBtn.classList.remove('btn-loading');
-                        loginBtn.disabled = false;
-                        showAlert('Login memakan waktu lebih lama dari biasanya. Silakan coba lagi.', 'warning');
-                    }
+                    const buttons = [
+                        document.getElementById('login-btn'),
+                        document.getElementById('normal-login-btn'),
+                        document.getElementById('force-login-btn')
+                    ].filter(btn => btn);
+                    
+                    buttons.forEach(btn => {
+                        if (btn && btn.classList.contains('btn-loading')) {
+                            btn.classList.remove('btn-loading');
+                            btn.disabled = false;
+                        }
+                    });
+                    
+                    showAlert('Login memakan waktu lebih lama dari biasanya. Silakan coba lagi.', 'warning');
                 }, 15000);
             });
 
@@ -512,6 +714,11 @@
                     latInput.value = -6.2;
                     lonInput.value = 106.816666;
                 }
+
+                // Focus on email input
+                setTimeout(() => {
+                    document.getElementById('email').focus();
+                }, 100);
             }
 
             function showPermissionError(message) {
@@ -522,10 +729,73 @@
                 showAlert(message, 'error');
             }
 
-            // Auto-show login form if there are validation errors or if it's local environment
-            @if ($errors->any() || app()->environment('local'))
+            // Auto-show login form if there are validation errors, force login situation, or if it's local environment
+            @if ($errors->any() || session('show_force_login') || app()->environment('local'))
                 showLoginForm();
             @endif
+
+            // Session heartbeat to detect if session becomes invalid
+            if (!IS_LOCAL) {
+                setInterval(function() {
+                    fetch('/auth/check-session', {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        }
+                    })
+                    .then(response => {
+                        if (response.status === 401) {
+                            showAlert('Sesi Anda telah berakhir. Silakan login kembali.', 'warning');
+                        }
+                    })
+                    .catch(error => {
+                        // Silently ignore network errors
+                        console.log('Session check failed:', error);
+                    });
+                }, 300000); // Check every 5 minutes
+            }
+
+            // Auto-dismiss warning banner after some time
+            if (SHOW_FORCE_LOGIN) {
+                setTimeout(() => {
+                    const banner = document.getElementById('session-warning-banner');
+                    if (banner) {
+                        banner.style.animation = 'slideUp 0.3s ease-in forwards';
+                        setTimeout(() => banner.remove(), 300);
+                    }
+                }, 10000); // Auto dismiss after 10 seconds
+            }
+
+            // Enhanced keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                // Enter key on force login checkbox should toggle it
+                if (e.key === 'Enter' && e.target === forceLoginCheckbox) {
+                    e.preventDefault();
+                    forceLoginCheckbox.checked = !forceLoginCheckbox.checked;
+                    forceLoginCheckbox.dispatchEvent(new Event('change'));
+                }
+                
+                // Ctrl/Cmd + Enter for force login
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && SHOW_FORCE_LOGIN) {
+                    e.preventDefault();
+                    if (forceLoginCheckbox) {
+                        forceLoginCheckbox.checked = true;
+                        forceLoginCheckbox.dispatchEvent(new Event('change'));
+                        document.getElementById('force-login-btn').click();
+                    }
+                }
+            });
+
+            // Show helpful tooltips for force login option
+            if (SHOW_FORCE_LOGIN) {
+                const forceLoginSection = document.querySelector('#force_login').closest('.p-4');
+                if (forceLoginSection) {
+                    forceLoginSection.addEventListener('mouseenter', function() {
+                        showAlert('💡 Tips: Gunakan Ctrl+Enter untuk force login cepat', 'success', 2000);
+                    }, { once: true });
+                }
+            }
         });
     </script>
 </body>

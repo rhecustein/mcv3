@@ -35,6 +35,16 @@ Route::middleware('guest')->group(function () {
     //
 });
 
+// routes/web.php - tambahkan untuk session management
+Route::middleware('auth')->group(function () {
+    Route::post('/auth/force-logout-others', [AuthenticatedSessionController::class, 'forceLogoutOtherSessions'])
+        ->name('auth.force-logout-others');
+    Route::get('/auth/active-sessions', [AuthenticatedSessionController::class, 'getActiveSessions'])
+        ->name('auth.active-sessions');
+    Route::get('/auth/check-session', [AuthenticatedSessionController::class, 'checkSession'])
+        ->name('auth.check-session');
+});
+
 Route::middleware('auth')->group(function () {
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
