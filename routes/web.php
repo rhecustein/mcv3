@@ -65,15 +65,7 @@ Route::get('/verify/{code}', [PublicResultController::class, 'verify'])
 // Authentication routes
 require __DIR__.'/auth.php';
 
-// routes/web.php - tambahkan untuk session management
-Route::middleware('auth')->group(function () {
-    Route::post('/auth/force-logout-others', [AuthenticatedSessionController::class, 'forceLogoutOtherSessions'])
-        ->name('auth.force-logout-others');
-    Route::get('/auth/active-sessions', [AuthenticatedSessionController::class, 'getActiveSessions'])
-        ->name('auth.active-sessions');
-    Route::get('/auth/check-session', [AuthenticatedSessionController::class, 'checkSession'])
-        ->name('auth.check-session');
-});
+
 
 // ==================== COMMON AUTHENTICATED ROUTES ====================
 Route::middleware(['auth', EnsureSingleSession::class])->group(function () {
