@@ -98,11 +98,11 @@
                                 <input type="hidden" name="company_id" id="company_id" value="{{ old('company_id') }}">
                                 <div id="company-suggestions" class="absolute z-50 bg-white border border-slate-200 mt-1 rounded-lg shadow-xl max-h-40 overflow-y-auto w-full text-sm"></div>
                             </div>
-                            <!-- <button type="button" onclick="document.getElementById('modalCompany').showModal()"
+                            <button type="button" onclick="document.getElementById('modalCompany').showModal()"
                                     class="flex-shrink-0 px-4 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all shadow-md"
                                     title="Tambah Perusahaan Baru">
                                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                            </button> -->
+                            </button>
                         </div>
                         @error('company_id')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
                     </div>

@@ -2,31 +2,36 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Str;
+use Carbon\Carbon;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Support\Facades\Hash;
+use Barryvdh\DomPDF\Facade\Pdf;
+
+use App\Jobs\GenerateSuratSakitPDF;
+use App\Jobs\GenerateSuratSehatPDF;
 use App\Helpers\QrEncryptHelper;
 use App\Helpers\SuratHelper;
+use App\Services\QrCodeService;
 use App\Services\IP2LocationService;
+
 use App\Models\Doctor;
 use App\Models\Patient;
 use App\Models\Result;
 use App\Models\Company;
 use App\Models\IcdMaster;
 use App\Models\MedicalDiagnosis;
-use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Outlet;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\ResultTrashView;
-use App\Jobs\GenerateSuratSakitPDF;
-use App\Jobs\GenerateSuratSehatPDF;
 use App\Models\DocumentQueue;
-use Illuminate\Support\Facades\Crypt;
-use Illuminate\Contracts\Encryption\DecryptException;
-use Carbon\Carbon;
-use Illuminate\Support\Str;
-
+use App\Models\Package;
 
 class HealthletterController extends Controller
 {
@@ -168,6 +173,7 @@ class HealthletterController extends Controller
             'nik'                   => 'nullable|string|max:50',
             'identity'              => 'nullable|string|max:50',
             'address'               => 'nullable|string|max:255',
+            'company'               => 'nullable|string|max:255', // Manual company name input
             'company_id'            => 'nullable|exists:companies,id',
             'send_notif_wa'         => 'nullable|boolean',
             'send_notif_email'      => 'nullable|boolean',
@@ -195,6 +201,19 @@ class HealthletterController extends Controller
             $latitude  = $location['latitude'] ?? null;
             $longitude = $location['longitude'] ?? null;
 
+            // 🏢 Menentukan nama perusahaan
+            $companyName = null;
+            $companyId = $request->company_id;
+            
+            if ($companyId) {
+                // Jika ada company_id, ambil nama dari database
+                $company = Company::find($companyId);
+                $companyName = $company ? $company->name : null;
+            } elseif ($request->filled('company')) {
+                // Jika tidak ada company_id tapi ada input manual company name
+                $companyName = $request->company;
+            }
+
             // 📋 Buat atau update pasien
             if (!$request->filled('patient_id')) {
                 $newUser = User::create([
@@ -214,18 +233,42 @@ class HealthletterController extends Controller
                     'identity'     => $request->identity,
                     'address'      => $request->address,
                     'outlet_id'    => $outlet->id,
-                    'company_id'   => $request->company_id,
-                    'company_name' => $request->company_id ? Company::find($request->company_id)?->name : null,
+                    'company_id'   => $companyId,
+                    'company_name' => $companyName, // Set company name dari relasi atau input manual
                 ]);
             } else {
                 $patient = Patient::findOrFail($request->patient_id);
-                $patient->update(array_filter([
-                    'company_id' => $request->company_id !== $patient->company_id ? $request->company_id : null,
-                    'phone'      => $request->phone !== $patient->phone ? $request->phone : null,
-                    'nik'        => $request->nik !== $patient->nik ? $request->nik : null,
-                    'identity'   => $request->identity !== $patient->identity ? $request->identity : null,
-                    'address'    => $request->address !== $patient->address ? $request->address : null,
-                ]));
+                
+                // Prepare update data
+                $updateData = [];
+                
+                if ($request->company_id !== $patient->company_id) {
+                    $updateData['company_id'] = $companyId;
+                }
+                
+                // Update company_name jika company_id berubah atau jika ada input manual
+                if ($companyId !== $patient->company_id || $request->filled('company')) {
+                    $updateData['company_name'] = $companyName;
+                }
+                
+                // Update fields lain jika berbeda
+                if ($request->phone !== $patient->phone) {
+                    $updateData['phone'] = $request->phone;
+                }
+                if ($request->nik !== $patient->nik) {
+                    $updateData['nik'] = $request->nik;
+                }
+                if ($request->identity !== $patient->identity) {
+                    $updateData['identity'] = $request->identity;
+                }
+                if ($request->address !== $patient->address) {
+                    $updateData['address'] = $request->address;
+                }
+                
+                // Update hanya jika ada perubahan
+                if (!empty($updateData)) {
+                    $patient->update($updateData);
+                }
             }
 
             // 🧾 Diagnosis
@@ -253,27 +296,28 @@ class HealthletterController extends Controller
             $qrcodeHash = md5(now() . rand());
 
             $result = Result::create([
-                'outlet_id'         => $outlet->id,
-                'patient_id'        => $patient->id,
-                'doctor_id'         => $request->doctor_id,
-                'company_id'        => $request->company_id,
+                'outlet_id'            => $outlet->id,
+                'patient_id'           => $patient->id,
+                'doctor_id'            => $request->doctor_id,
+                'company'              => $companyName, // Gunakan company name yang sudah ditentukan
+                'company_id'           => $companyId,
                 'medical_diagnosis_id' => $diagnosisId,
-                'type'              => 'skb',
-                'unique_code'       => $uniqueCode,
-                'no_letters'        => $noLetters,
-                'qrcode'            => $qrcodeHash,
-                'date'              => $request->date,
-                'time'              => $request->time,
-                'verification_date' => now(),
-                'print_date'        => now(),
-                'sign_type'         => $request->sign_type,
-                'sign_value'        => $request->sign_value,
-                'send_notif_wa'     => $request->boolean('send_notif_wa'),
-                'send_notif_email'  => $request->boolean('send_notif_email'),
-                'created_ip'        => $ip,
-                'created_city'      => $city,
-                'created_latitude'  => $latitude,
-                'created_longitude' => $longitude,
+                'type'                 => 'skb',
+                'unique_code'          => $uniqueCode,
+                'no_letters'           => $noLetters,
+                'qrcode'               => $qrcodeHash,
+                'date'                 => $request->date,
+                'time'                 => $request->time,
+                'verification_date'    => now(),
+                'print_date'           => now(),
+                'sign_type'            => $request->sign_type,
+                'sign_value'           => $request->sign_value,
+                'send_notif_wa'        => $request->boolean('send_notif_wa'),
+                'send_notif_email'     => $request->boolean('send_notif_email'),
+                'created_ip'           => $ip,
+                'created_city'         => $city,
+                'created_latitude'     => $latitude,
+                'created_longitude'    => $longitude,
             ]);
 
             // 📤 Antrian PDF
@@ -307,8 +351,13 @@ class HealthletterController extends Controller
 
         } catch (\Throwable $e) {
             DB::rollBack();
-            Log::error($e);
-            return back()->with('error', 'Gagal menyimpan surat sehat.')->withInput();
+            Log::error('Error storing Surat Sehat: ' . $e->getMessage(), [
+                'user_id' => auth()->id(),
+                'request_data' => $request->all(),
+                'stack_trace' => $e->getTraceAsString()
+            ]);
+            
+            return back()->with('error', 'Gagal menyimpan surat sehat: ' . $e->getMessage())->withInput();
         }
     }
     public function storeSuratSakit(Request $request)
@@ -328,6 +377,7 @@ class HealthletterController extends Controller
             'send_notif_wa'        => 'nullable|boolean',
             'send_notif_email'     => 'nullable|boolean',
             'company_id'           => 'nullable|exists:companies,id',
+            'company'              => 'nullable|string|max:255', // Manual company name input
             'patient_name'         => 'required_without:patient_id|string|max:255',
             'gender'               => 'nullable|in:L,P',
             'dob'                  => 'nullable|date',
@@ -355,9 +405,22 @@ class HealthletterController extends Controller
             $latitude  = $location['latitude'] ?? null;
             $longitude = $location['longitude'] ?? null;
 
+            // 🏢 Menentukan nama perusahaan
+            $companyName = null;
+            $companyId = $request->company_id;
+            
+            if ($companyId) {
+                // Jika ada company_id, ambil nama dari database
+                $company = \App\Models\Company::find($companyId);
+                $companyName = $company ? $company->name : null;
+            } elseif ($request->filled('company')) {
+                // Jika tidak ada company_id tapi ada input manual company name
+                $companyName = $request->company;
+            }
+
             // ========== PASIEN ==========
             if (!$request->filled('patient_id')) {
-                $user = \App\Models\User::create([
+                $newUser = \App\Models\User::create([
                     'name'      => $request->patient_name,
                     'email'     => 'auto_' . uniqid() . '@mail.local',
                     'password'  => bcrypt('password123'),
@@ -365,7 +428,7 @@ class HealthletterController extends Controller
                 ]);
 
                 $patient = \App\Models\Patient::create([
-                    'user_id'       => $user->id,
+                    'user_id'       => $newUser->id,
                     'full_name'     => $request->patient_name,
                     'gender'        => $request->gender,
                     'birth_date'    => $request->dob,
@@ -374,18 +437,42 @@ class HealthletterController extends Controller
                     'identity'      => $request->identity,
                     'address'       => $request->address,
                     'outlet_id'     => $outlet->id,
-                    'company_id'    => $request->company_id,
-                    'company_name'  => $request->company_id ? \App\Models\Company::find($request->company_id)?->name : null,
+                    'company_id'    => $companyId,
+                    'company_name'  => $companyName, // Set company name dari relasi atau input manual
                 ]);
             } else {
                 $patient = \App\Models\Patient::findOrFail($request->patient_id);
-                $patient->update(array_filter([
-                    'company_id' => $request->company_id !== $patient->company_id ? $request->company_id : null,
-                    'phone'      => $request->phone !== $patient->phone ? $request->phone : null,
-                    'nik'        => $request->nik !== $patient->nik ? $request->nik : null,
-                    'identity'   => $request->identity !== $patient->identity ? $request->identity : null,
-                    'address'    => $request->address !== $patient->address ? $request->address : null,
-                ]));
+                
+                // Prepare update data
+                $updateData = [];
+                
+                if ($request->company_id !== $patient->company_id) {
+                    $updateData['company_id'] = $companyId;
+                }
+                
+                // Update company_name jika company_id berubah atau jika ada input manual
+                if ($companyId !== $patient->company_id || $request->filled('company')) {
+                    $updateData['company_name'] = $companyName;
+                }
+                
+                // Update fields lain jika berbeda
+                if ($request->phone !== $patient->phone) {
+                    $updateData['phone'] = $request->phone;
+                }
+                if ($request->nik !== $patient->nik) {
+                    $updateData['nik'] = $request->nik;
+                }
+                if ($request->identity !== $patient->identity) {
+                    $updateData['identity'] = $request->identity;
+                }
+                if ($request->address !== $patient->address) {
+                    $updateData['address'] = $request->address;
+                }
+                
+                // Update hanya jika ada perubahan
+                if (!empty($updateData)) {
+                    $patient->update($updateData);
+                }
             }
 
             // ========== DIAGNOSIS ==========
@@ -417,7 +504,8 @@ class HealthletterController extends Controller
                 'outlet_id'            => $outlet->id,
                 'patient_id'           => $patient->id,
                 'doctor_id'            => $request->doctor_id,
-                'company_id'           => $request->company_id,
+                'company'              => $companyName, // Gunakan company name yang sudah ditentukan
+                'company_id'           => $companyId,
                 'medical_diagnosis_id' => $diagnosisId,
                 'type'                 => 'mc',
                 'unique_code'          => $uniqueCode,
@@ -430,6 +518,8 @@ class HealthletterController extends Controller
                 'send_notif_wa'        => $request->boolean('send_notif_wa'),
                 'send_notif_email'     => $request->boolean('send_notif_email'),
                 'no_letters'           => $noLetters,
+                'verification_date'    => now(),
+                'print_date'           => now(),
                 'created_ip'           => $ip,
                 'created_city'         => $city,
                 'created_latitude'     => $latitude,
@@ -465,8 +555,75 @@ class HealthletterController extends Controller
 
         } catch (\Throwable $e) {
             DB::rollBack();
-            Log::error($e);
-            return back()->with('error', 'Gagal menyimpan surat.')->withInput();
+            Log::error('Error storing Surat Sakit: ' . $e->getMessage(), [
+                'user_id' => auth()->id(),
+                'request_data' => $request->all(),
+                'stack_trace' => $e->getTraceAsString()
+            ]);
+            
+            return back()->with('error', 'Gagal menyimpan surat sakit: ' . $e->getMessage())->withInput();
+        }
+    }
+
+    /**
+     * Show the form for editing the specified result (both SKB and MC).
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function edit($id)
+    {
+        try {
+            // Find result with relationships
+            $result = Result::with([
+                'patient',
+                'company',
+                'doctor.user',
+                'icdMaster',
+                'outlet'
+            ])->findOrFail($id);
+
+            // Check authorization - user can only edit their own outlet's results
+            $user = auth()->user();
+            if ($user->role === 'outlet' && $result->outlet_id !== $user->outlet_id) {
+                abort(403, 'Anda tidak memiliki akses untuk mengedit surat ini.');
+            }
+
+            // Get current outlet
+            $outlet = $user->role === 'outlet' ? $user->outlet : $result->outlet;
+
+            // Determine letter type and redirect to appropriate edit view
+            if ($result->letter_type === 'skb') {
+                // For SKB (Surat Keterangan Sehat)
+                return view('outlets.healthletter.edit_skb', [
+                    'result' => $result,
+                    'outlet' => $outlet,
+                    'pageTitle' => 'Edit Surat Keterangan Sehat'
+                ]);
+                
+            } elseif ($result->letter_type === 'mc') {
+                // For MC (Medical Certificate / Surat Istirahat)
+                return view('outlets.healthletter.edit_mc', [
+                    'result' => $result,
+                    'outlet' => $outlet,
+                    'pageTitle' => 'Edit Surat Istirahat'
+                ]);
+                
+            } else {
+                // Unknown letter type
+                return back()->with('error', 'Tipe surat tidak dikenal.');
+            }
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return back()->with('error', 'Surat tidak ditemukan.');
+        } catch (\Exception $e) {
+            \Log::error('Error in HealthletterController@edit: ' . $e->getMessage(), [
+                'result_id' => $id,
+                'user_id' => auth()->id(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return back()->with('error', 'Terjadi kesalahan saat mengakses data surat.');
         }
     }
 
@@ -955,13 +1112,29 @@ class HealthletterController extends Controller
         return response()->json($patients);
     }
 
-    // STORECOMAPNY
+    // STORE COMPANY - Updated to support both form and AJAX requests
     public function storeCompany(Request $request)
     {
+        // Cek apakah nama perusahaan sudah ada
+        $existingCompany = Company::where('name', $request->name)->first();
+        if ($existingCompany) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'message' => 'Perusahaan dengan nama tersebut sudah terdaftar.',
+                    'errors' => [
+                        'name' => ['Perusahaan "' . $request->name . '" sudah terdaftar. Silakan gunakan nama yang berbeda.']
+                    ]
+                ], 422);
+            }
+            
+            return back()->withInput()->with('error', 'Perusahaan dengan nama tersebut sudah terdaftar.');
+        }
+
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            // Data company wajib
+            'name' => 'required|string|max:255|unique:companies,name',
             'code' => 'nullable|string|unique:companies',
-            'email' => 'nullable|email',
+            'email' => 'nullable|email|max:255|unique:companies,email|unique:users,email',
             'phone' => 'nullable|string|max:20',
             'industry_type' => 'nullable|string|max:100',
             'registration_number' => 'nullable|string|max:100',
@@ -969,13 +1142,121 @@ class HealthletterController extends Controller
             'city' => 'nullable|string|max:100',
             'province' => 'nullable|string|max:100',
             'postal_code' => 'nullable|string|max:20',
+            
+            // Package dan user account
+            'package_id' => 'nullable|exists:packages,id',
+            'create_user_account' => 'boolean',
+            'user_password' => 'nullable|string|min:8|required_if:create_user_account,true',
         ]);
 
-        Company::create($validated + [
-            'is_active' => $request->has('is_active'),
-        ]);
+        try {
+            DB::beginTransaction();
 
-        return back()->with('success', 'Perusahaan berhasil ditambahkan.');
+            $user = null;
+            
+            // Buat user account jika diminta dan ada email
+            if (!empty($validated['email']) && ($validated['create_user_account'] ?? false)) {
+                $user = User::create([
+                    'name' => $validated['name'],
+                    'email' => $validated['email'],
+                    'password' => Hash::make($validated['user_password'] ?? 'password'),
+                    'role_type' => 'companies',
+                    'phone' => $validated['phone'] ?? null,
+                    'email_verified_at' => now(),
+                    'last_login_at' => null,
+                ]);
+            }
+
+            // Siapkan data company (hapus field yang tidak perlu)
+            $companyData = collect($validated)->except([
+                'create_user_account', 
+                'user_password'
+            ])->toArray();
+            
+            // Tambahkan user_id jika user dibuat
+            if ($user) {
+                $companyData['user_id'] = $user->id;
+            }
+
+            // Set status active dari checkbox
+            $companyData['is_active'] = $request->has('is_active');
+
+            // Logika untuk mengatur tanggal mulai dan berakhir paket
+            if (isset($validated['package_id'])) {
+                $package = Package::find($validated['package_id']);
+                if ($package) {
+                    $companyData['package_start_date'] = Carbon::now();
+                    $companyData['package_end_date'] = Carbon::now()->addDays($package->duration_in_days);
+                    
+                    // Set initial usage counters
+                    $companyData['used_letters_this_month'] = 0;
+                    $companyData['used_patients_total'] = 0;
+                }
+            }
+
+            // Buat company
+            $company = Company::create($companyData);
+
+            DB::commit();
+
+            $message = 'Perusahaan berhasil ditambahkan.';
+            if ($user) {
+                $message .= ' User account juga telah dibuat dengan email: ' . $user->email;
+            }
+
+            // Response untuk AJAX request
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'message' => $message,
+                    'company' => [
+                        'id' => $company->id,
+                        'name' => $company->name,
+                        'email' => $company->email,
+                        'phone' => $company->phone,
+                        'address' => $company->address,
+                        'created_at' => $company->created_at->toISOString(),
+                    ]
+                ], 201);
+            }
+
+            // Response untuk form request biasa
+            return back()->with('success', $message);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
+            
+            // Handle validation errors untuk AJAX
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'message' => 'Data yang dikirim tidak valid.',
+                    'errors' => $e->errors()
+                ], 422);
+            }
+            
+            throw $e; // Re-throw untuk form request
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            \Log::error('Error creating company: ' . $e->getMessage(), [
+                'request_data' => $request->all(),
+                'user_id' => auth()->id(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // Response untuk AJAX request
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'message' => 'Terjadi kesalahan server saat membuat perusahaan. Silakan coba lagi.',
+                    'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+                ], 500);
+            }
+            
+            // Response untuk form request
+            return back()
+                ->withInput()
+                ->with('error', 'Gagal membuat perusahaan: ' . $e->getMessage());
+        }
     }
 
     public function destroyQueue($id)

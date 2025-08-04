@@ -107,7 +107,7 @@ document.addEventListener('alpine:init', () => {
 
         nextStep() {
             if (!this.validateCurrentStep()) {
-                showToast('Mohon lengkapi semua kolom yang wajib diisi.', 'error');
+                showToast('Mohon lengkapi semua kolom yang wajib diisi, pilih data yang sesuai', 'error');
                 return;
             }
             if (this.currentStep < this.steps.length) {
@@ -158,8 +158,21 @@ document.addEventListener('alpine:init', () => {
         validateStep1() {
             const { patient_name, company_search, company_id, date, time } = this.formElements;
             let isValid = true;
+            
+            // Validasi nama pasien
             isValid = this._validateField(patient_name, patient_name.value.trim()) && isValid;
-            isValid = this._validateField(company_search, company_id.value || company_search.value.trim()) && isValid;
+            
+            // Validasi perusahaan - HARUS memilih dari dropdown, tidak boleh free text
+            const companyValid = company_id.value && company_search.value.trim();
+            isValid = this._validateField(company_search, companyValid) && isValid;
+            
+            // Jika ada text di company_search tapi tidak ada company_id, berarti belum memilih dari dropdown
+            if (company_search.value.trim() && !company_id.value) {
+                this._validateField(company_search, false);
+                showToast('Silakan pilih perusahaan dari daftar yang tersedia.', 'error');
+                isValid = false;
+            }
+            
             isValid = this._validateField(date, date.value) && isValid;
             isValid = this._validateField(time, time.value) && isValid;
             return isValid;
@@ -195,29 +208,33 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // --- Generic Search Component Setup ---
-    function setupSearchComponent({ inputEl, suggestionsEl, idEl, route, renderItemFn, onSelect, noResultMsg, onNewOption }) {
+    function setupSearchComponent({ inputEl, suggestionsEl, idEl, route, renderItemFn, onSelect, noResultMsg, onNewOption, restrictToSelection = false }) {
+        let selectedFromDropdown = false;
+        
         const searchFn = debounce(async (query) => {
             if (query.length < 2) {
                 suggestionsEl.innerHTML = '';
                 return;
             }
 
-            suggestionsEl.innerHTML = '<div class="p-4 text-center text-gray-500">Mencari...</div>'; // Simple loading text
+            suggestionsEl.innerHTML = '<div class="p-4 text-center text-gray-500">Mencari...</div>';
 
             try {
                 const response = await fetch(`${route}?q=${encodeURIComponent(query)}`);
                 if (!response.ok) throw new Error('Network response was not ok');
                 const data = await response.json();
 
-                suggestionsEl.innerHTML = ''; // Clear loading/previous results
+                suggestionsEl.innerHTML = '';
 
                 if (data.length > 0) {
                     data.forEach(item => {
                         const itemEl = renderItemFn(item);
-                        itemEl.addEventListener('click', () => onSelect(item));
+                        itemEl.addEventListener('click', () => {
+                            selectedFromDropdown = true;
+                            onSelect(item);
+                        });
                         suggestionsEl.appendChild(itemEl);
                     });
-                    // Add "Register New" option if provided
                     if(onNewOption) {
                         const newOptionEl = onNewOption(query);
                         suggestionsEl.appendChild(newOptionEl);
@@ -233,19 +250,42 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 300);
 
         inputEl.addEventListener('input', function() {
-            idEl.value = ''; // Reset ID on new input
-            if (window.isNewPatientCheckbox) { // Special handling for patient
+            const currentValue = this.value.trim();
+            
+            // Jika restrictToSelection true (untuk company), reset ID dan flag saat mengetik
+            if (restrictToSelection) {
+                selectedFromDropdown = false;
+                idEl.value = '';
+            } else {
+                idEl.value = '';
+            }
+            
+            if (window.isNewPatientCheckbox) {
                  window.isNewPatientCheckbox.checked = true;
                  window.isNewPatientCheckbox.disabled = false;
             }
-            searchFn(this.value.trim());
+            searchFn(currentValue);
         });
+
+        // Validasi khusus untuk restricted input (company)
+        if (restrictToSelection) {
+            inputEl.addEventListener('blur', function() {
+                const currentValue = this.value.trim();
+                // Jika ada text tapi tidak dipilih dari dropdown, beri warning visual
+                if (currentValue && !selectedFromDropdown && !idEl.value) {
+                    this.classList.add('border-yellow-400', 'bg-yellow-50');
+                    setTimeout(() => {
+                        this.classList.remove('border-yellow-400', 'bg-yellow-50');
+                    }, 2000);
+                }
+            });
+        }
     }
 
     // --- PATIENT SEARCH ---
     const patientInput = document.getElementById('patient_name');
     const patientIdInput = document.getElementById('patient_id');
-    window.isNewPatientCheckbox = document.getElementById('is_new_patient'); // Use window scope for access in generic handler
+    window.isNewPatientCheckbox = document.getElementById('is_new_patient');
     const patientFields = {
         dob: document.getElementById('dob'),
         gender: document.getElementById('gender'),
@@ -339,12 +379,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // --- COMPANY SEARCH ---
+    // --- COMPANY SEARCH (RESTRICTED TO SELECTION ONLY) ---
     const companyInput = document.getElementById('company_search');
     function selectCompany(company) {
         companyInput.value = company.name;
         document.getElementById('company_id').value = company.id;
         document.getElementById('company-suggestions').innerHTML = '';
+        
+        // Reset visual validation styling
+        companyInput.classList.remove('border-yellow-400', 'bg-yellow-50', 'border-red-500', 'focus:ring-red-500');
+        companyInput.classList.add('border-gray-300', 'focus:ring-blue-500');
     }
 
     if (companyInput) {
@@ -355,6 +399,7 @@ document.addEventListener('DOMContentLoaded', function() {
             route: `{{ route('outlet.api.companies.search') }}`,
             onSelect: selectCompany,
             noResultMsg: 'Perusahaan tidak ditemukan.',
+            restrictToSelection: true, // IMPORTANT: This restricts input to dropdown selection only
             renderItemFn: (company) => {
                 const el = createDOMElement('div', ['p-3', 'hover:bg-blue-50', 'cursor-pointer', 'border-b']);
                 const content = createDOMElement('div', ['flex', 'items-center', 'justify-between']);
@@ -364,6 +409,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 );
                 el.appendChild(content);
                 return el;
+            }
+        });
+
+        // Tambahan validasi khusus untuk company - clear text jika tidak valid
+        companyInput.addEventListener('keydown', function(e) {
+            // Jika user menekan Enter dan tidak ada ID yang dipilih, clear input
+            if (e.key === 'Enter' && this.value.trim() && !document.getElementById('company_id').value) {
+                e.preventDefault();
+                showToast('Silakan pilih perusahaan dari daftar yang tersedia.', 'error');
+                return false;
             }
         });
     }
@@ -398,6 +453,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- FORM SUBMISSION ---
     document.getElementById('skb-form')?.addEventListener('submit', function(e) {
+        // Validasi final sebelum submit - khusus untuk company
+        const companyId = document.getElementById('company_id').value;
+        const companySearch = document.getElementById('company_search').value.trim();
+        
+        if (companySearch && !companyId) {
+            e.preventDefault();
+            showToast('Silakan pilih perusahaan dari daftar yang tersedia.', 'error');
+            companyInput.focus();
+            companyInput.classList.add('border-red-500', 'focus:ring-red-500');
+            return false;
+        }
+
         // Simple loading state on final submit button
         const submitBtn = document.getElementById('submit-btn');
         if (submitBtn) {
@@ -410,14 +477,49 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- COMPANY MODAL LOGIC ---
     document.getElementById('company-form')?.addEventListener('submit', async function(e) {
         e.preventDefault();
+        
         const form = e.target;
         const saveBtn = document.getElementById('save-company-btn');
+        const saveBtnText = document.getElementById('save-company-text');
+        const saveBtnLoading = document.getElementById('save-company-loading');
         const errorEl = document.getElementById('company-error');
+        const companyNameInput = document.getElementById('modal_company_name');
+        const modal = document.getElementById('modalCompany');
         
+        // Validasi input kosong
+        const companyName = companyNameInput.value.trim();
+        if (!companyName) {
+            errorEl.textContent = 'Nama perusahaan tidak boleh kosong.';
+            errorEl.classList.remove('hidden');
+            companyNameInput.focus();
+            return;
+        }
+
+        // Set loading state
         saveBtn.disabled = true;
+        saveBtnText.classList.add('hidden');
+        saveBtnLoading.classList.remove('hidden');
         errorEl.classList.add('hidden');
 
         try {
+            // Cek apakah nama perusahaan sudah ada
+            const checkResponse = await fetch(`{{ route('outlet.api.companies.search') }}?q=${encodeURIComponent(companyName)}`);
+            if (checkResponse.ok) {
+                const existingCompanies = await checkResponse.json();
+                const duplicateCompany = existingCompanies.find(company => 
+                    company.name.toLowerCase() === companyName.toLowerCase()
+                );
+                
+                if (duplicateCompany) {
+                    errorEl.textContent = `Perusahaan "${companyName}" sudah terdaftar. Silakan gunakan nama yang berbeda.`;
+                    errorEl.classList.remove('hidden');
+                    companyNameInput.focus();
+                    companyNameInput.select();
+                    return;
+                }
+            }
+
+            // Jika tidak ada duplikat, lanjutkan dengan menyimpan
             const response = await fetch(form.action, {
                 method: 'POST',
                 headers: {
@@ -425,27 +527,100 @@ document.addEventListener('DOMContentLoaded', function() {
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                 },
-                body: JSON.stringify({ name: document.getElementById('modal_company_name').value })
+                body: JSON.stringify({ name: companyName })
             });
 
             const data = await response.json();
 
-            if (response.ok) {
-                selectCompany(data.company);
-                document.getElementById('modalCompany').close();
-                form.reset();
-                showToast('Perusahaan berhasil ditambahkan.', 'success');
+            if (response.ok || response.status === 201) {
+                // Berhasil dibuat
+                if (data.company) {
+                    selectCompany(data.company);
+                    modal.close();
+                    form.reset();
+                    showToast('Perusahaan berhasil ditambahkan dan dipilih.', 'success');
+                } else {
+                    // Respons sukses tapi tidak ada data company
+                    errorEl.textContent = 'Terjadi kesalahan: Data perusahaan tidak ditemukan dalam respons.';
+                    errorEl.classList.remove('hidden');
+                }
+            } else if (response.status === 422) {
+                // Validation error dari server
+                const errorMessage = data.errors?.name?.[0] || 
+                                    data.message || 
+                                    'Terjadi kesalahan validasi.';
+                
+                // Cek jika error tentang duplikat
+                if (errorMessage.toLowerCase().includes('sudah ada') || 
+                    errorMessage.toLowerCase().includes('already exists') ||
+                    errorMessage.toLowerCase().includes('duplicate')) {
+                    errorEl.textContent = `Perusahaan "${companyName}" sudah terdaftar. Silakan gunakan nama yang berbeda.`;
+                } else {
+                    errorEl.textContent = errorMessage;
+                }
+                errorEl.classList.remove('hidden');
+            } else if (response.status === 409) {
+                // Conflict - duplicate entry
+                errorEl.textContent = `Perusahaan "${companyName}" sudah terdaftar. Silakan gunakan nama yang berbeda.`;
+                errorEl.classList.remove('hidden');
             } else {
-                errorEl.textContent = data.errors?.name?.[0] || data.message || 'Terjadi kesalahan.';
+                // Error lainnya
+                errorEl.textContent = data.message || `Terjadi kesalahan server (${response.status}). Silakan coba lagi.`;
                 errorEl.classList.remove('hidden');
             }
+
         } catch (error) {
             console.error('Error saving company:', error);
-            errorEl.textContent = 'Terjadi kesalahan jaringan.';
+            
+            // Cek apakah ini network error atau parsing error
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                errorEl.textContent = 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.';
+            } else if (error.name === 'SyntaxError') {
+                errorEl.textContent = 'Terjadi kesalahan dalam memproses respons server.';
+            } else {
+                errorEl.textContent = 'Terjadi kesalahan yang tidak terduga. Silakan coba lagi.';
+            }
             errorEl.classList.remove('hidden');
         } finally {
+            // Reset loading state
             saveBtn.disabled = false;
+            saveBtnText.classList.remove('hidden');
+            saveBtnLoading.classList.add('hidden');
         }
+    });
+
+    // Clear error ketika user mulai mengetik lagi
+    document.getElementById('modal_company_name')?.addEventListener('input', function() {
+        const errorEl = document.getElementById('company-error');
+        if (!errorEl.classList.contains('hidden')) {
+            errorEl.classList.add('hidden');
+        }
+    });
+
+    // Clear form dan error ketika modal ditutup
+    document.getElementById('modalCompany')?.addEventListener('close', function() {
+        const form = document.getElementById('company-form');
+        const errorEl = document.getElementById('company-error');
+        
+        if (form) form.reset();
+        if (errorEl) errorEl.classList.add('hidden');
+    });
+
+    // Clear error ketika user mulai mengetik lagi
+    document.getElementById('modal_company_name')?.addEventListener('input', function() {
+        const errorEl = document.getElementById('company-error');
+        if (!errorEl.classList.contains('hidden')) {
+            errorEl.classList.add('hidden');
+        }
+    });
+
+    // Clear form dan error ketika modal ditutup
+    document.getElementById('modalCompany')?.addEventListener('close', function() {
+        const form = document.getElementById('company-form');
+        const errorEl = document.getElementById('company-error');
+        
+        if (form) form.reset();
+        if (errorEl) errorEl.classList.add('hidden');
     });
 
     // --- Close dropdowns when clicking outside ---

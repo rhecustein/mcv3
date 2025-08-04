@@ -132,7 +132,7 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        // --- Validation Logic ---
+        // --- VALIDATION LOGIC WITH COMPANY RESTRICTION ---
         validateCurrentStep() {
             const validations = {
                 1: () => this.validateStep1(),
@@ -146,19 +146,35 @@ document.addEventListener('alpine:init', () => {
             if (!element) return true;
             if (condition) {
                 element.classList.remove('border-red-500', 'focus:ring-red-500');
-                element.classList.add('border-slate-300', 'focus:ring-red-500');
+                element.classList.add('border-gray-300', 'focus:ring-blue-500');
                 return true;
             } else {
                 element.classList.add('border-red-500', 'focus:ring-red-500');
-                element.classList.remove('border-slate-300', 'focus:ring-blue-500');
+                element.classList.remove('border-gray-300', 'focus:ring-blue-500');
                 return false;
             }
         },
 
         validateStep1() {
-            const { patient_name, dob, gender } = this.formElements;
+            const { patient_name, company_search, company_id, dob, gender } = this.formElements;
             let isValid = true;
+            
+            // Validasi nama pasien
             isValid = this._validateField(patient_name, patient_name.value.trim()) && isValid;
+            
+            // VALIDASI COMPANY - KUNCI: Jika diisi, HARUS dari dropdown
+            if (company_search.value.trim()) {
+                const companyValid = company_id.value && company_search.value.trim();
+                isValid = this._validateField(company_search, companyValid) && isValid;
+                
+                // Jika ada text tapi tidak ada ID, berarti tidak memilih dari dropdown
+                if (company_search.value.trim() && !company_id.value) {
+                    this._validateField(company_search, false);
+                    showToast('Silakan pilih perusahaan dari daftar yang tersedia atau kosongkan field ini.', 'error');
+                    isValid = false;
+                }
+            }
+            
             isValid = this._validateField(dob, dob.value) && isValid;
             isValid = this._validateField(gender, gender.value) && isValid;
             return isValid;
@@ -169,7 +185,15 @@ document.addEventListener('alpine:init', () => {
             let isValid = true;
             isValid = this._validateField(duration, duration.value && parseInt(duration.value) > 0) && isValid;
             isValid = this._validateField(start_date, start_date.value) && isValid;
-            isValid = this._validateField(icd_search, !icd_search.value.trim() || icd_master_id.value) && isValid;
+            
+            // Validasi ICD: Jika diisi, harus memilih dari dropdown
+            if (icd_search.value.trim()) {
+                isValid = this._validateField(icd_search, icd_master_id.value) && isValid;
+                if (icd_search.value.trim() && !icd_master_id.value) {
+                    showToast('Silakan pilih diagnosis dari daftar yang tersedia.', 'error');
+                    isValid = false;
+                }
+            }
             return isValid;
         },
 
@@ -193,7 +217,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // --- Generic Search Component Setup ---
-    function setupSearchComponent({ inputEl, suggestionsEl, idEl, route, renderItemFn, onSelect, noResultMsg, onNewOption }) {
+    function setupSearchComponent({ inputEl, suggestionsEl, idEl, route, renderItemFn, onSelect, noResultMsg, onNewOption, restrictToSelection = false }) {
+        let selectedFromDropdown = false;
+        
         const searchFn = debounce(async (query) => {
             if (query.length < 2) {
                 suggestionsEl.innerHTML = '';
@@ -212,12 +238,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.length > 0) {
                     data.forEach(item => {
                         const itemEl = renderItemFn(item);
-                        itemEl.addEventListener('click', () => onSelect(item));
+                        itemEl.addEventListener('click', () => {
+                            selectedFromDropdown = true;
+                            onSelect(item);
+                        });
                         suggestionsEl.appendChild(itemEl);
                     });
-                    // Add "Register New" option if provided
                     if(onNewOption) {
-                        const newOptionEl = onNewOption(query);
+                        const newOptionEl = onNewOption(query);  
                         suggestionsEl.appendChild(newOptionEl);
                     }
                 } else {
@@ -231,13 +259,46 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 300);
 
         inputEl.addEventListener('input', function() {
-            idEl.value = ''; // Reset ID on new input
-            if (window.isNewPatientCheckbox) { // Special handling for patient
+            const currentValue = this.value.trim();
+            
+            // Reset state saat mengetik
+            if (restrictToSelection) {
+                selectedFromDropdown = false;
+                idEl.value = '';
+            } else {
+                idEl.value = '';
+            }
+            
+            if (window.isNewPatientCheckbox) {
                  window.isNewPatientCheckbox.checked = true;
                  window.isNewPatientCheckbox.disabled = false;
             }
-            searchFn(this.value.trim());
+            searchFn(currentValue);
         });
+
+        // Validasi visual untuk restricted input
+        if (restrictToSelection) {
+            inputEl.addEventListener('blur', function() {
+                const currentValue = this.value.trim();
+                
+                // Jika ada text tapi tidak dipilih dari dropdown
+                if (currentValue && !selectedFromDropdown && !idEl.value) {
+                    this.classList.add('border-yellow-400', 'bg-yellow-50');
+                    setTimeout(() => {
+                        this.classList.remove('border-yellow-400', 'bg-yellow-50');
+                    }, 2000);
+                }
+            });
+
+            // Prevent Enter jika tidak valid
+            inputEl.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && this.value.trim() && !idEl.value) {
+                    e.preventDefault();
+                    showToast('Silakan pilih perusahaan dari daftar yang tersedia.', 'error');
+                    return false;
+                }
+            });
+        }
     }
 
     // --- PATIENT SEARCH ---
@@ -337,22 +398,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // --- COMPANY SEARCH ---
+    // --- COMPANY SEARCH (RESTRICTED TO SELECTION ONLY) ---
     const companyInput = document.getElementById('company_search');
+    const companyId = document.getElementById('company_id');
+    
     function selectCompany(company) {
         companyInput.value = company.name;
-        document.getElementById('company_id').value = company.id;
+        companyId.value = company.id;
         document.getElementById('company-suggestions').innerHTML = '';
+        
+        // Reset visual validation styling
+        companyInput.classList.remove('border-yellow-400', 'bg-yellow-50', 'border-red-500', 'focus:ring-red-500');
+        companyInput.classList.add('border-gray-300', 'focus:ring-blue-500');
     }
 
     if (companyInput) {
         setupSearchComponent({
             inputEl: companyInput,
             suggestionsEl: document.getElementById('company-suggestions'),
-            idEl: document.getElementById('company_id'),
+            idEl: companyId,
             route: '/outlet/api/companies/live-search',
             onSelect: selectCompany,
             noResultMsg: 'Perusahaan tidak ditemukan.',
+            restrictToSelection: true, // KUNCI: Hanya boleh pilih dari dropdown
             renderItemFn: (company) => {
                 const el = createDOMElement('div', ['p-3', 'hover:bg-blue-50', 'cursor-pointer', 'border-b']);
                 const content = createDOMElement('div', ['flex', 'items-center', 'justify-between']);
@@ -526,6 +594,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- FORM SUBMISSION ---
     document.getElementById('mc-form')?.addEventListener('submit', function(e) {
+        // Validasi final company sebelum submit
+        const companySearch = companyInput?.value.trim();
+        const companyIdValue = companyId?.value;
+        
+        if (companySearch && !companyIdValue) {
+            e.preventDefault();
+            showToast('Silakan pilih perusahaan dari daftar yang tersedia atau kosongkan field ini.', 'error');
+            companyInput.focus();
+            companyInput.classList.add('border-red-500', 'focus:ring-red-500');
+            return false;
+        }
+
         const submitBtn = document.getElementById('submit-btn');
         if (submitBtn) {
             submitBtn.disabled = true;
@@ -534,21 +614,52 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // --- COMPANY MODAL LOGIC ---
+    // --- COMPANY MODAL LOGIC WITH IMPROVED ERROR HANDLING ---
     document.getElementById('company-form')?.addEventListener('submit', async function(e) {
         e.preventDefault();
+        
         const form = e.target;
         const saveBtn = document.getElementById('save-company-btn');
         const saveBtnText = document.getElementById('save-company-text');
         const saveBtnLoading = document.getElementById('save-company-loading');
         const errorEl = document.getElementById('company-error');
+        const companyNameInput = document.getElementById('modal_company_name');
+        const modal = document.getElementById('modalCompany');
         
+        // Validasi input kosong
+        const companyName = companyNameInput.value.trim();
+        if (!companyName) {
+            errorEl.textContent = 'Nama perusahaan tidak boleh kosong.';
+            errorEl.classList.remove('hidden');
+            companyNameInput.focus();
+            return;
+        }
+
+        // Set loading state
         saveBtn.disabled = true;
         if (saveBtnText) saveBtnText.classList.add('hidden');
         if (saveBtnLoading) saveBtnLoading.classList.remove('hidden');
         errorEl?.classList.add('hidden');
 
         try {
+            // Cek duplikat nama perusahaan
+            const checkResponse = await fetch(`/outlet/api/companies/live-search?q=${encodeURIComponent(companyName)}`);
+            if (checkResponse.ok) {
+                const existingCompanies = await checkResponse.json();
+                const duplicateCompany = existingCompanies.find(company => 
+                    company.name.toLowerCase() === companyName.toLowerCase()
+                );
+                
+                if (duplicateCompany) {
+                    errorEl.textContent = `Perusahaan "${companyName}" sudah terdaftar. Silakan gunakan nama yang berbeda.`;
+                    errorEl.classList.remove('hidden');
+                    companyNameInput.focus();
+                    companyNameInput.select();
+                    return;
+                }
+            }
+
+            // Simpan perusahaan baru
             const response = await fetch(form.action, {
                 method: 'POST',
                 headers: {
@@ -556,33 +667,132 @@ document.addEventListener('DOMContentLoaded', function() {
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                 },
-                body: JSON.stringify({ name: document.getElementById('modal_company_name').value })
+                body: JSON.stringify({ name: companyName })
             });
 
-            const data = await response.json();
-
-            if (response.ok) {
-                selectCompany(data.company);
-                document.getElementById('modalCompany').close();
-                form.reset();
-                showToast('Perusahaan berhasil ditambahkan.', 'success');
+            // Handle berbagai format respons
+            let data;
+            const contentType = response.headers.get('content-type');
+            
+            if (contentType && contentType.includes('application/json')) {
+                data = await response.json();
             } else {
-                if (errorEl) {
-                    errorEl.textContent = data.errors?.name?.[0] || data.message || 'Terjadi kesalahan.';
+                // Jika respons bukan JSON (misalnya HTML redirect), anggap berhasil jika status OK
+                const responseText = await response.text();
+                console.log('Non-JSON response:', responseText);
+                
+                if (response.ok || response.status === 201 || response.status === 302) {
+                    // Kemungkinan berhasil tapi server redirect atau mengembalikan HTML
+                    // Kita coba ambil data perusahaan yang baru saja dibuat
+                    try {
+                        const searchResponse = await fetch(`/outlet/api/companies/live-search?q=${encodeURIComponent(companyName)}`);
+                        if (searchResponse.ok) {
+                            const companies = await searchResponse.json();
+                            const newCompany = companies.find(company => 
+                                company.name.toLowerCase() === companyName.toLowerCase()
+                            );
+                            
+                            if (newCompany) {
+                                selectCompany(newCompany);
+                                modal.close();
+                                form.reset();
+                                showToast('Perusahaan berhasil ditambahkan dan dipilih.', 'success');
+                                return;
+                            }
+                        }
+                    } catch (searchError) {
+                        console.error('Error searching for new company:', searchError);
+                    }
+                    
+                    // Fallback: berhasil tapi tidak bisa mendapat data company
+                    errorEl.textContent = 'Perusahaan berhasil disimpan, tapi tidak bisa otomatis dipilih. Silakan pilih manual dari daftar.';
                     errorEl.classList.remove('hidden');
+                    modal.close();
+                    form.reset();
+                    return;
                 }
+                
+                // Jika status tidak OK dan bukan JSON
+                errorEl.textContent = `Terjadi kesalahan server (${response.status}). Silakan coba lagi.`;
+                errorEl.classList.remove('hidden');
+                return;
             }
-        } catch (error) {
-            console.error('Error saving company:', error);
-            if (errorEl) {
-                errorEl.textContent = 'Terjadi kesalahan jaringan.';
+
+            // Handle respons JSON normal
+            if (response.ok || response.status === 201) {
+                // Berhasil dibuat
+                if (data.company) {
+                    selectCompany(data.company);
+                    modal.close();
+                    form.reset();
+                    showToast('Perusahaan berhasil ditambahkan dan dipilih.', 'success');
+                } else {
+                    // Respons sukses tapi tidak ada data company
+                    errorEl.textContent = 'Perusahaan berhasil disimpan. Silakan pilih dari daftar perusahaan.';
+                    errorEl.classList.remove('hidden');
+                    modal.close();
+                    form.reset();
+                }
+            } else if (response.status === 422) {
+                // Validation error dari server
+                const errorMessage = data.errors?.name?.[0] || 
+                                     data.message || 
+                                     'Terjadi kesalahan validasi.';
+                
+                // Cek jika error tentang duplikat
+                if (errorMessage.toLowerCase().includes('sudah ada') || 
+                    errorMessage.toLowerCase().includes('already exists') ||
+                    errorMessage.toLowerCase().includes('duplicate')) {
+                    errorEl.textContent = `Perusahaan "${companyName}" sudah terdaftar. Silakan gunakan nama yang berbeda.`;
+                } else {
+                    errorEl.textContent = errorMessage;
+                }
+                errorEl.classList.remove('hidden');
+            } else if (response.status === 409) {
+                // Conflict - duplicate entry
+                errorEl.textContent = `Perusahaan "${companyName}" sudah terdaftar. Silakan gunakan nama yang berbeda.`;
+                errorEl.classList.remove('hidden');
+            } else {
+                // Error lainnya
+                errorEl.textContent = data.message || `Terjadi kesalahan server (${response.status}). Silakan coba lagi.`;
                 errorEl.classList.remove('hidden');
             }
+
+        } catch (error) {
+            console.error('Error saving company:', error);
+            
+            // Cek apakah ini network error atau parsing error
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                errorEl.textContent = 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.';
+            } else if (error.name === 'SyntaxError') {
+                errorEl.textContent = 'Server mengembalikan respons yang tidak valid. Coba refresh halaman dan ulangi.';
+            } else {
+                errorEl.textContent = 'Terjadi kesalahan yang tidak terduga. Silakan coba lagi.';
+            }
+            errorEl.classList.remove('hidden');
         } finally {
+            // Reset loading state
             saveBtn.disabled = false;
             if (saveBtnText) saveBtnText.classList.remove('hidden');
             if (saveBtnLoading) saveBtnLoading.classList.add('hidden');
         }
+    });
+
+    // Clear error ketika user mulai mengetik lagi
+    document.getElementById('modal_company_name')?.addEventListener('input', function() {
+        const errorEl = document.getElementById('company-error');
+        if (errorEl && !errorEl.classList.contains('hidden')) {
+            errorEl.classList.add('hidden');
+        }
+    });
+
+    // Clear form dan error ketika modal ditutup
+    document.getElementById('modalCompany')?.addEventListener('close', function() {
+        const form = document.getElementById('company-form');
+        const errorEl = document.getElementById('company-error');
+        
+        if (form) form.reset();
+        if (errorEl) errorEl.classList.add('hidden');
     });
 
     // --- Close dropdowns when clicking outside ---
@@ -623,7 +833,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Restore old company data if validation failed
     @if(old('company_id') && old('company_name'))
         if (companyInput) companyInput.value = "{{ old('company_name') }}";
-        if (document.getElementById('company_id')) document.getElementById('company_id').value = "{{ old('company_id') }}";
+        if (companyId) companyId.value = "{{ old('company_id') }}";
     @endif
 
     // --- Inject Animation CSS ---
