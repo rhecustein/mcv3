@@ -158,36 +158,51 @@
         </thead>
         <tbody>
             @php
-                use Carbon\Carbon;
+            use Carbon\Carbon;
 
-                $tanggal = $result->date ? Carbon::parse($result->date) : null;
-                $hariID = $tanggal ? $tanggal->translatedFormat('l') : '-';
-                $hariEN = $tanggal ? $tanggal->locale('en')->translatedFormat('l') : '-';
-                $tanggalID = $tanggal ? $tanggal->translatedFormat('d F Y') : '-';
-                $tanggalEN = $tanggal ? $tanggal->locale('en')->translatedFormat('F jS Y') : '-';
+            // Inisialisasi variabel dengan nilai default
+            $hariID = '-';
+            $hariEN = '-';
+            $tanggalID = '-';
+            $tanggalEN = '-';
 
-                $tanggal1 = $result->created_at ? Carbon::parse($result->created_at) : null;
-                $hariID1 = $tanggal1 ? $tanggal1->translatedFormat('l') : '-';
-                $hariEN1 = $tanggal1 ? $tanggal1->locale('en')->translatedFormat('l') : '-';
-                $tanggalID1 = $tanggal1 ? $tanggal1->translatedFormat('d F Y') : '-';
-                $tanggalEN1 = $tanggal1 ? $tanggal1->locale('en')->translatedFormat('F jS Y') : '-';
-            @endphp
-            <tr>
-                <td class="tg-73oq" style="text-align: center;">
-                    {{ $hariID }}<br>
-                    <span style="font-style:italic">{{ $hariEN }}</span>
-                </td>
-                <td class="tg-0lax" style="text-align: center;">
-                    {{ $tanggalID }}<br>
-                    <span style="font-style:italic">{{ $tanggalEN }}</span>
-                </td>
-                <td class="tg-0lax" style="text-align: center;">
-                    {{ $result->time }} WIB
-                </td>
-                <td class="tg-0lax" style="text-align: center;">
-                    {{ $result->outlet->name }}
-                </td>
-            </tr>
+            // Cek jika $result->date ada isinya
+            if ($result->date) {
+                $tanggal = Carbon::parse($result->date);
+
+                // Format untuk Bahasa Indonesia (locale 'id')
+                $hariID = $tanggal->locale('id')->translatedFormat('l');
+                $tanggalID = $tanggal->locale('id')->translatedFormat('d F Y');
+
+                // Format untuk Bahasa Inggris (locale 'en')
+                $hariEN = $tanggal->locale('en')->translatedFormat('l');
+                $tanggalEN = $tanggal->locale('en')->translatedFormat('F jS Y');
+            }
+        @endphp
+        <tr>
+            {{-- Kolom untuk Hari --}}
+            <td class="tg-73oq" style="text-align: center;">
+                {{ $hariID }}<br>
+                <span style="font-style:italic">{{ $hariEN }}</span>
+            </td>
+            
+            {{-- Kolom untuk Tanggal --}}
+            <td class="tg-0lax" style="text-align: center;">
+                {{ $tanggalID }}<br>
+                <span style="font-style:italic">{{ $tanggalEN }}</span>
+            </td>
+            
+            {{-- Kolom untuk Waktu --}}
+            <td class="tg-0lax" style="text-align: center;">
+                {{-- Menggunakan null coalescing operator untuk keamanan --}}
+                {{ $result->time ?? '-' }} WIB
+            </td>
+
+            {{-- Kolom untuk Outlet --}}
+            <td class="tg-0lax" style="text-align: center;">
+                {{ $result->outlet->name ?? '-' }}
+            </td>
+        </tr>
         </tbody>
     </table>
     <table style="undefined;table-layout: fixed; width: 620px; margin-left: 47px; margin-top: 40px;">

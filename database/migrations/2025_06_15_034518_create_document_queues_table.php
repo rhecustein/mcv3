@@ -16,6 +16,10 @@ return new class extends Migration
 
             // Snapshot data dari Result
             $table->string('no_letters')->nullable();         // nomor surat
+            //outlet_id int
+            $table->integer('outlet_id')->nullable();
+            //filename
+             $table->string('filename')->nullable();  
             $table->string('patient_name')->nullable();       // nama pasien
             $table->enum('type_surat', ['skb', 'mc'])->nullable(); // jenis surat
             $table->string('outlet_name')->nullable();          // outlet tempat pemeriksaan
