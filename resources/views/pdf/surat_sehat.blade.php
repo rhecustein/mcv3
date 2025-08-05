@@ -124,13 +124,6 @@
                 <td style="width:2%">:</td>
                 <td style="width:65%;font-weight:bold;">{{ $result->patient->phone }}</td>
             </tr>
-            <tr>
-                <td>Diagnosa<br>
-                    <span style="font-style:italic">Diagnosis</span>
-                </td>
-                <td style="width:2%">:</td>
-                <td style="width:65%;font-weight:bold;">{{ $result->diagnosis->diagnosis_name ?? '-' }}</td>
-            </tr>
         </tbody>
     </table>
     <table style="undefined;table-layout: fixed; width: 620px; margin-left: 47px; margin-top: 40px;">
@@ -259,10 +252,10 @@
         <p style="text-align: left; margin-top: -15px; font-style: italic; font-size: 10px;">Scan to verify the authenticity <br> of this document</p>
 
     </div>
-    <div style="margin-top:40;margin-left: 16px;position:absolute;">
+    <div style="margin-top:70;margin-left: 16px;position:absolute;">
         <h5 style="color:#211c5e">{{ $result->outlet->name }}</h5>
     </div>
-    <div style="margin-top:95px;margin-left: 16px;position:absolute;width: 720px">
+    <div style="margin-top:130px;margin-left: 16px;position:absolute;width: 720px">
         <small>
            <small>
                 <span style="color:coral;"><b>A:</b></span>
