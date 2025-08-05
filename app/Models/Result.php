@@ -106,7 +106,12 @@ class Result extends Model
         return $this->belongsTo(IcdMaster::class, 'medical_diagnosis_id');
     }
 
-    public function company()
+    public function companyIS()
+    {
+        return $this->belongsTo(Company::class, 'company_id');
+    }
+
+     public function company()
     {
         return $this->belongsTo(Company::class, 'company_id');
     }

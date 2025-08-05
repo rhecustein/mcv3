@@ -98,7 +98,7 @@
                 </td>
                 <td style="width:2%">:</td>
                 <td style="width:65%;font-weight:bold;">
-                    {{ $result->company->name ?? '-' }}
+                    {{ $result->companyIS->name ?? '-' }}
                 </td>
             </tr>
             <span style="margin-bottom: 20px;"></span>
