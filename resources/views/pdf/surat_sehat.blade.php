@@ -205,10 +205,10 @@
     <br>
     <table style="undefined;table-layout: fixed; width: 620px ;margin-left: 47px">
         <h4 style="margin-top:-20px;font-weight: normal;text-align:left;">{{ $result->outlet->city ?? '-' }},
-            {{ $tanggalID1 ?? '-' }}</h4>
+            {{ $tanggalID ?? '-' }}</h4>
         <h4 style="margin-top:-20px;font-weight: normal;text-align:left;font-style:italic;">
             {{ $result->outlet->city ?? '-' }},
-            {{ $tanggalEN1 ?? '-' }}</h4>
+            {{ $tanggalEN ?? '-' }}</h4>
     </table>
      @if ($result->sign_type == 'sign_virtual')
         <div style="position: relative;top:0;left:0;margin-top:10px;">
