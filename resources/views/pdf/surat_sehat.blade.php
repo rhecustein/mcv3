@@ -171,6 +171,12 @@
                 $hariEN = $tanggal->locale('en')->translatedFormat('l');
                 $tanggalEN = $tanggal->locale('en')->translatedFormat('F jS Y');
             }
+
+            $tanggal1 = $result->created_at ? Carbon::parse($result->created_at) : null;
+            $hariID1 = $tanggal1 ? $tanggal1->translatedFormat('l') : '-';
+            $hariEN1 = $tanggal1 ? $tanggal1->locale('en')->translatedFormat('l') : '-';
+            $tanggalID1 = $tanggal1 ? $tanggal1->translatedFormat('d F Y') : '-';
+            $tanggalEN1 = $tanggal1 ? $tanggal1->locale('en')->translatedFormat('F jS Y') : '-';
         @endphp
         <tr>
             {{-- Kolom untuk Hari --}}
@@ -205,10 +211,10 @@
     <br>
     <table style="undefined;table-layout: fixed; width: 620px ;margin-left: 47px">
         <h4 style="margin-top:-20px;font-weight: normal;text-align:left;">{{ $result->outlet->city ?? '-' }},
-            {{ $tanggalID ?? '-' }}</h4>
+            {{ $tanggalID1 ?? '-' }}</h4>
         <h4 style="margin-top:-20px;font-weight: normal;text-align:left;font-style:italic;">
             {{ $result->outlet->city ?? '-' }},
-            {{ $tanggalEN ?? '-' }}</h4>
+            {{ $tanggalEN1 ?? '-' }}</h4>
     </table>
      @if ($result->sign_type == 'sign_virtual')
         <div style="position: relative;top:0;left:0;margin-top:10px;">
