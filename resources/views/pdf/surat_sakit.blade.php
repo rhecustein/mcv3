@@ -45,7 +45,7 @@
         vertical-align: top
     }
 </style>
-<img src="{{ public_path('assets/logo/KF_LK_Logo_Full_Colors_Primer_Tagline.png') }}" alt="" height="100px;"
+<img src="{{ public_path('assets/logo/KF_LK_Logo_Full_Colors_Primer_Tagline1.png') }}" alt="" height="100px;"
     style="margin-left:500px;margin-top:-40px;">
 <div>
     <table style="undefined;table-layout: fixed; width: 620px;margin-top:-30px;">
@@ -212,7 +212,7 @@
     </table>
      @if ($result->sign_type == 'sign_virtual')
         <div style="position: relative;top:0;left:0;margin-top:10px;">
-            <img src="{{ public_path('assets/logo/KF_LK_Logo_Full_Colors_Primer_Tagline.png') }}" alt="" height="70px;"
+            <img src="{{ public_path('assets/logo/KF_LK_Logo_Full_Colors_Primer_Tagline1.png') }}" alt="" height="70px;"
                 style="margin-top: -30px; margin-left: 90px; position: relative;
                 top: 0;
                 left: -100px;">
@@ -227,7 +227,7 @@
         <img src="data:image/svg+xml;base64,'{{ base64_encode(QrCode::size(100)->generate($result->sign_value)) }}"
             width="100" height="100" style="margin-bottom:20px" />
     @else
-        <img src="{{ public_path('assets/logo/KF_LK_Logo_Full_Colors_Primer_Tagline.png') }}" alt="" height="70px;"
+        <img src="{{ public_path('assets/logo/KF_LK_Logo_Full_Colors_Primer_Tagline1.png') }}" alt="" height="70px;"
             style="margin-top: -30px;margin-left:90px">
     @endif
 
