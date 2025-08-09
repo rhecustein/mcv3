@@ -170,77 +170,68 @@ class AdminManagementController extends Controller
 
     //dashboard
 public function dashboard()
-{
-    // Statistik total entity
-    $totalResults = Result::count();
-    $totalSKB = Result::where('type', 'skb')->count();
-    $totalMC = Result::where('type', 'mc')->count();
-    $totalAdmins = Admin::count();
-    $totalOutlets = Outlet::count();
-    $totalDoctors = Doctor::count();
-    $totalPatients = User::where('role_type', 'patient')->count();
-    $totalCompanies = Company::count();
+    {
+        // ✅ Statistik total entity - sesuai dengan blade
+        $totalResults = Result::count();
+        $totalSKB = Result::where('type', 'skb')->count();
+        $totalMC = Result::where('type', 'mc')->count();
+        $totalOutlets = Outlet::count();
+        $totalDoctors = Doctor::count();
+        $totalPatients = User::where('role_type', 'patient')->count();
+        $totalCompanies = Company::count();
 
-    // Statistik outlet: jumlah surat per outlet
-    $outletStats = Outlet::withCount('results')
-        ->get()
-        ->map(fn($outlet) => (object)[
-            'name' => $outlet->name,
-            'count' => $outlet->results_count,
-        ]);
+        // ✅ Trend bulanan: 12 bulan terakhir (bukan 6)
+        $months = collect(range(0, 11))->map(
+            fn($i) => now()->subMonths($i)->format('Y-m')
+        )->reverse();
 
-    // Trend bulanan: 6 bulan terakhir
-    $months = collect(range(0, 5))->map(
-        fn($i) => now()->subMonths($i)->format('Y-m')
-    )->reverse();
+        $trendData = $months->map(fn($month) =>
+            Result::whereYear('created_at', substr($month, 0, 4))
+                ->whereMonth('created_at', substr($month, 5, 2))
+                ->count()
+        );
 
-    $trendData = $months->map(fn($month) =>
-        Result::whereYear('created_at', substr($month, 0, 4))
-            ->whereMonth('created_at', substr($month, 5, 2))
-            ->count()
-    );
+        $trendLabels = $months->map(fn($month) =>
+            \Carbon\Carbon::createFromFormat('Y-m', $month)->translatedFormat('M Y')
+        );
 
-    $trendLabels = $months->map(fn($month) =>
-        \Carbon\Carbon::createFromFormat('Y-m', $month)->translatedFormat('F Y')
-    );
+        // ✅ Distribusi Surat per Provinsi - handle empty case
+        $provinceLabels = Admin::whereNotNull('province')
+            ->distinct()
+            ->pluck('province');
 
-    // Distribusi Surat per Provinsi (admin->province → outlet → surat)
-    $provinceLabels = Admin::whereNotNull('province')
-        ->distinct()
-        ->pluck('province');
-
-    $provinceData = $provinceLabels->map(function ($province) {
-        return Result::whereIn('outlet_id', function ($q) use ($province) {
-            $q->select('id')->from('outlets')->whereIn('admin_id', function ($sub) use ($province) {
-                $sub->select('id')->from('admins')->where('province', $province);
+        $provinceData = collect();
+        if ($provinceLabels->isNotEmpty()) {
+            $provinceData = $provinceLabels->map(function ($province) {
+                return Result::whereIn('outlet_id', function ($q) use ($province) {
+                    $q->select('id')->from('outlets')->whereIn('admin_id', function ($sub) use ($province) {
+                        $sub->select('id')->from('admins')->where('province', $province);
+                    });
+                })->count();
             });
-        })->count();
-    });
+        }
 
-    // Top 5 Admin Aktif (berdasarkan jumlah outlet)
-    $topAdmins = Admin::with(['user'])
-        ->withCount(['outlets', 'doctors'])
-        ->withCount(['patients as patients_count' => function ($q) {
-            $q->whereHas('user', fn($q) => $q->where('role_type', 'patient'));
-        }])
-        ->orderByDesc('outlets_count')
-        ->limit(5)
-        ->get();
+        // ✅ Aktivitas Terbaru: 10 surat terakhir dengan safety check
+        $recentResults = Result::with(['patient.user', 'outlet'])
+            ->latest()
+            ->limit(10)
+            ->get();
 
-    // Aktivitas Terbaru: 10 surat terakhir
-    $recentResults = Result::with(['patient.user', 'outlet'])
-        ->latest()
-        ->limit(10)
-        ->get();
+        // ✅ Top 5 Admin Aktif (optional - bisa dipake atau ngga)
+        $topAdmins = Admin::with(['user'])
+            ->withCount(['outlets', 'doctors'])
+            ->orderByDesc('outlets_count')
+            ->limit(5)
+            ->get();
 
-    return view('superadmin.dashboard', compact(
-        'totalResults', 'totalSKB', 'totalMC',
-        'totalAdmins', 'totalOutlets', 'totalDoctors', 'totalPatients', 'totalCompanies',
-        'outletStats', 'trendLabels', 'trendData',
-        'provinceLabels', 'provinceData',
-        'topAdmins', 'recentResults'
-    ));
-}
+        return view('superadmin.dashboard', compact(
+            'totalResults', 'totalSKB', 'totalMC',
+            'totalOutlets', 'totalDoctors', 'totalPatients', 'totalCompanies',
+            'trendLabels', 'trendData',
+            'provinceLabels', 'provinceData',
+            'topAdmins', 'recentResults'
+        ));
+    }
 
 
 }
