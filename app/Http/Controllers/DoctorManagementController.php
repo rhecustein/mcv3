@@ -98,7 +98,7 @@ class DoctorManagementController extends Controller
             
             DB::commit();
 
-            return redirect()->route('doctors.index')->with('success', 'Dokter baru berhasil ditambahkan.');
+            return redirect()->route('superadmin.doctors.index')->with('success', 'Dokter baru berhasil ditambahkan.');
 
         } catch (\Exception $e) {
             DB::rollBack();
