@@ -326,117 +326,172 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
 <script>
 let trendChart = null;
 
 document.addEventListener('DOMContentLoaded', function () {
-    // Initialize enhanced chart
+    // Initialize enhanced chart with error handling
     const monthlyCtx = document.getElementById('monthlyTrendChart');
     if (monthlyCtx) {
-        Chart.defaults.color = '#64748b'; 
-        Chart.defaults.borderColor = 'rgba(226, 232, 240, 0.5)';
-        
-        // Enhanced gradients
-        const primaryGradient = monthlyCtx.getContext('2d').createLinearGradient(0, 0, 0, 320);
-        primaryGradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
-        primaryGradient.addColorStop(0.6, 'rgba(139, 69, 255, 0.2)');
-        primaryGradient.addColorStop(1, 'rgba(59, 130, 246, 0.02)');
+        try {
+            // Parse data safely
+            const rawLabels = {!! json_encode($trendLabels ?? []) !!};
+            const rawData = {!! json_encode($trendData ?? []) !!};
+            
+            // Convert to arrays and ensure they're valid
+            const labels = Array.isArray(rawLabels) ? rawLabels : [];
+            const data = Array.isArray(rawData) ? rawData.map(Number) : [];
+            
+            // Skip if no data
+            if (labels.length === 0 || data.length === 0) {
+                console.log('No chart data available');
+                return;
+            }
+            
+            Chart.defaults.color = '#64748b';
+            Chart.defaults.borderColor = 'rgba(226, 232, 240, 0.5)';
+            
+            // Enhanced gradients
+            const primaryGradient = monthlyCtx.getContext('2d').createLinearGradient(0, 0, 0, 320);
+            primaryGradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
+            primaryGradient.addColorStop(0.6, 'rgba(139, 69, 255, 0.2)');
+            primaryGradient.addColorStop(1, 'rgba(59, 130, 246, 0.02)');
 
-        const borderGradient = monthlyCtx.getContext('2d').createLinearGradient(0, 0, 0, 320);
-        borderGradient.addColorStop(0, '#3b82f6');
-        borderGradient.addColorStop(0.5, '#8b5cf6');
-        borderGradient.addColorStop(1, '#06b6d4');
+            const borderGradient = monthlyCtx.getContext('2d').createLinearGradient(0, 0, 0, 320);
+            borderGradient.addColorStop(0, '#3b82f6');
+            borderGradient.addColorStop(0.5, '#8b5cf6');
+            borderGradient.addColorStop(1, '#06b6d4');
 
-        trendChart = new Chart(monthlyCtx, {
-            type: 'line',
-            data: {
-                labels: {!! json_encode($trendLabels ?? []) !!},
-                datasets: [{
-                    label: 'Total Surat',
-                    data: {!! json_encode($trendData ?? []) !!},
-                    backgroundColor: primaryGradient,
-                    borderColor: borderGradient,
-                    borderWidth: 3,
-                    tension: 0.4,
-                    fill: true,
-                    pointBackgroundColor: '#ffffff',
-                    pointBorderColor: '#3b82f6',
-                    pointBorderWidth: 3,
-                    pointRadius: 6,
-                    pointHoverRadius: 8,
-                    pointHoverBorderWidth: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: {
-                    duration: 2000,
-                    easing: 'easeInOutCubic'
-                },
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
-                },
-                plugins: {
-                    legend: { 
-                        display: false 
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                        titleColor: '#ffffff',
-                        bodyColor: '#e2e8f0',
+            trendChart = new Chart(monthlyCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total Surat',
+                        data: data,
+                        backgroundColor: primaryGradient,
                         borderColor: '#3b82f6',
-                        borderWidth: 2,
-                        cornerRadius: 12,
-                        padding: 16,
-                        titleFont: {
-                            size: 14,
-                            weight: 'bold'
-                        },
-                        bodyFont: {
-                            size: 13,
-                            weight: '500'
-                        },
-                        displayColors: true,
-                        usePointStyle: true,
-                        callbacks: {
-                            title: function(context) {
-                                return `📅 ${context[0].label}`;
-                            },
-                            label: function(context) {
-                                const value = context.parsed.y;
-                                return `📊 ${context.dataset.label}: ${value.toLocaleString()} surat`;
-                            }
-                        }
-                    }
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#3b82f6',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointHoverBorderWidth: 3,
+                        pointHoverBackgroundColor: '#ffffff',
+                        pointHoverBorderColor: '#3b82f6'
+                    }]
                 },
-                scales: {
-                    y: { 
-                        beginAtZero: true, 
-                        grid: { 
-                            drawBorder: false,
-                            color: 'rgba(148, 163, 184, 0.15)'
-                        },
-                        ticks: {
-                            color: '#64748b',
-                            callback: function(value) {
-                                return value.toLocaleString() + ' surat';
-                            }
-                        }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 1500,
+                        easing: 'easeInOutCubic'
                     },
-                    x: { 
-                        grid: { 
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: { 
                             display: false 
                         },
-                        ticks: {
-                            color: '#64748b'
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#e2e8f0',
+                            borderColor: '#3b82f6',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            padding: 12,
+                            titleFont: {
+                                size: 13,
+                                weight: 'bold'
+                            },
+                            bodyFont: {
+                                size: 12,
+                                weight: '500'
+                            },
+                            displayColors: false,
+                            callbacks: {
+                                title: function(context) {
+                                    return `📅 ${context[0].label}`;
+                                },
+                                label: function(context) {
+                                    const value = context.parsed.y;
+                                    return `📊 Total: ${value.toLocaleString()} surat`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            grace: '5%',
+                            grid: { 
+                                drawBorder: false,
+                                color: 'rgba(148, 163, 184, 0.15)',
+                                lineWidth: 1
+                            },
+                            ticks: {
+                                color: '#64748b',
+                                font: {
+                                    size: 11
+                                },
+                                callback: function(value) {
+                                    return value.toLocaleString();
+                                }
+                            }
+                        },
+                        x: { 
+                            grid: { 
+                                display: false 
+                            },
+                            ticks: {
+                                color: '#64748b',
+                                font: {
+                                    size: 11
+                                },
+                                maxRotation: 45
+                            }
+                        }
+                    },
+                    elements: {
+                        point: {
+                            backgroundColor: '#ffffff',
+                            borderColor: '#3b82f6',
+                            borderWidth: 2,
+                            radius: 4,
+                            hoverRadius: 6,
+                            hoverBorderWidth: 3
+                        },
+                        line: {
+                            borderCapStyle: 'round',
+                            borderJoinStyle: 'round'
                         }
                     }
                 }
-            }
-        });
+            });
+            
+            console.log('Chart initialized successfully');
+            
+        } catch (error) {
+            console.error('Chart initialization error:', error);
+            // Show fallback message
+            monthlyCtx.parentElement.innerHTML = `
+                <div class="h-80 flex items-center justify-center text-slate-500">
+                    <div class="text-center">
+                        <i class="fas fa-chart-line text-4xl mb-4 text-slate-300"></i>
+                        <p class="font-medium">Chart tidak dapat dimuat</p>
+                        <p class="text-sm mt-1">Silakan refresh halaman</p>
+                    </div>
+                </div>
+            `;
+        }
     }
     
     // Initialize animations
@@ -444,32 +499,48 @@ document.addEventListener('DOMContentLoaded', function () {
     initRealTimeUpdates();
 });
 
-// Helper functions
+// Helper functions dengan error handling
 function initAnimations() {
-    // Staggered card animations
-    const cards = document.querySelectorAll('.bg-white');
-    cards.forEach((card, index) => {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(20px)';
-        setTimeout(() => {
-            card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0)';
-        }, index * 100);
-    });
+    try {
+        // Staggered card animations
+        const cards = document.querySelectorAll('.bg-white');
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+    } catch (error) {
+        console.error('Animation initialization error:', error);
+    }
 }
 
 function refreshDashboard() {
     showNotification('🔄 Refreshing dashboard data...', 'info');
     setTimeout(() => {
-        window.location.reload();
+        try {
+            window.location.reload();
+        } catch (error) {
+            console.error('Refresh error:', error);
+            showNotification('❌ Refresh failed, please try again', 'error');
+        }
     }, 1500);
 }
 
 function refreshChart() {
-    if (trendChart) {
-        trendChart.update('active');
-        showNotification('📊 Chart refreshed!', 'success');
+    try {
+        if (trendChart && typeof trendChart.update === 'function') {
+            trendChart.update('active');
+            showNotification('📊 Chart refreshed!', 'success');
+        } else {
+            showNotification('⚠️ Chart not available', 'error');
+        }
+    } catch (error) {
+        console.error('Chart refresh error:', error);
+        showNotification('❌ Chart refresh failed', 'error');
     }
 }
 
@@ -481,121 +552,176 @@ function refreshActivities() {
 }
 
 function toggleFullscreen() {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen();
-        showNotification('🖥️ Entering fullscreen mode', 'info');
-    } else {
-        document.exitFullscreen();
-        showNotification('🪟 Exiting fullscreen mode', 'info');
+    try {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().then(() => {
+                showNotification('🖥️ Entering fullscreen mode', 'info');
+            }).catch(err => {
+                console.error('Fullscreen error:', err);
+                showNotification('❌ Fullscreen not supported', 'error');
+            });
+        } else {
+            document.exitFullscreen().then(() => {
+                showNotification('🪟 Exiting fullscreen mode', 'info');
+            });
+        }
+    } catch (error) {
+        console.error('Fullscreen toggle error:', error);
+        showNotification('❌ Fullscreen toggle failed', 'error');
     }
 }
 
 function exportReport() {
     showNotification('📊 Generating report...', 'info');
     setTimeout(() => {
-        showNotification('📄 Report generated successfully!', 'success');
+        try {
+            // Simulate report generation
+            const today = new Date().toISOString().split('T')[0];
+            showNotification('📄 Report generated successfully!', 'success');
+        } catch (error) {
+            console.error('Export error:', error);
+            showNotification('❌ Export failed', 'error');
+        }
     }, 2000);
 }
 
 function initRealTimeUpdates() {
-    // Update time every minute
-    setInterval(() => {
-        const timeElements = document.querySelectorAll('.text-blue-700');
-        timeElements.forEach(el => {
-            if (el.textContent.includes('WIB')) {
-                el.textContent = new Date().toLocaleTimeString('id-ID', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                }) + ' WIB';
+    try {
+        // Update time every minute
+        setInterval(() => {
+            try {
+                const timeElements = document.querySelectorAll('.text-blue-700');
+                timeElements.forEach(el => {
+                    if (el && el.textContent && el.textContent.includes('WIB')) {
+                        el.textContent = new Date().toLocaleTimeString('id-ID', { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                        }) + ' WIB';
+                    }
+                });
+            } catch (error) {
+                console.error('Time update error:', error);
             }
-        });
-    }, 60000);
-    
-    // Simulate real-time data updates
-    setInterval(() => {
-        if (Math.random() > 0.7) {
-            updateOnlineUsers();
-        }
-    }, 30000);
+        }, 60000);
+        
+        // Simulate real-time data updates
+        setInterval(() => {
+            if (Math.random() > 0.7) {
+                updateOnlineUsers();
+            }
+        }, 30000);
+    } catch (error) {
+        console.error('Real-time updates initialization error:', error);
+    }
 }
 
 function updateOnlineUsers() {
-    const onlineUserElement = document.querySelector('.text-purple-700');
-    if (onlineUserElement && onlineUserElement.textContent.includes('User Online')) {
-        const newCount = Math.floor(Math.random() * 30) + 15;
-        onlineUserElement.textContent = `${newCount} User Online`;
+    try {
+        const onlineUserElement = document.querySelector('.text-purple-700');
+        if (onlineUserElement && onlineUserElement.textContent && onlineUserElement.textContent.includes('User Online')) {
+            const newCount = Math.floor(Math.random() * 30) + 15;
+            onlineUserElement.textContent = `${newCount} User Online`;
+        }
+    } catch (error) {
+        console.error('Online users update error:', error);
     }
 }
 
 function showNotification(message, type = 'info') {
-    // Remove existing notifications
-    const existingNotifications = document.querySelectorAll('.notification');
-    existingNotifications.forEach(notif => notif.remove());
-    
-    // Create notification
-    const notification = document.createElement('div');
-    notification.className = `notification fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl text-white text-sm font-medium transform translate-x-full transition-all duration-500 ${
-        type === 'success' ? 'bg-emerald-500 border border-emerald-400' : 
-        type === 'error' ? 'bg-red-500 border border-red-400' : 
-        'bg-blue-500 border border-blue-400'
-    }`;
-    
-    notification.innerHTML = `
-        <div class="flex items-center gap-3">
-            <div class="flex-shrink-0">
-                ${type === 'success' ? '<i class="fas fa-check-circle"></i>' : 
-                  type === 'error' ? '<i class="fas fa-exclamation-circle"></i>' : 
-                  '<i class="fas fa-info-circle"></i>'}
-            </div>
-            <span>${message}</span>
-            <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white/80 hover:text-white transition-colors">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Animate in
-    setTimeout(() => {
-        notification.style.transform = 'translateX(0)';
-    }, 100);
-    
-    // Auto remove
-    setTimeout(() => {
-        notification.style.transform = 'translateX(100%)';
-        setTimeout(() => {
-            if (notification.parentElement) {
-                notification.remove();
+    try {
+        // Remove existing notifications
+        const existingNotifications = document.querySelectorAll('.notification');
+        existingNotifications.forEach(notif => {
+            if (notif && notif.remove) {
+                notif.remove();
             }
-        }, 500);
-    }, 4000);
+        });
+        
+        // Create notification
+        const notification = document.createElement('div');
+        notification.className = `notification fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl text-white text-sm font-medium transform translate-x-full transition-all duration-500 ${
+            type === 'success' ? 'bg-emerald-500 border border-emerald-400' : 
+            type === 'error' ? 'bg-red-500 border border-red-400' : 
+            'bg-blue-500 border border-blue-400'
+        }`;
+        
+        notification.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="flex-shrink-0">
+                    ${type === 'success' ? '<i class="fas fa-check-circle"></i>' : 
+                      type === 'error' ? '<i class="fas fa-exclamation-circle"></i>' : 
+                      '<i class="fas fa-info-circle"></i>'}
+                </div>
+                <span>${message}</span>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white/80 hover:text-white transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Animate in
+        setTimeout(() => {
+            notification.style.transform = 'translateX(0)';
+        }, 100);
+        
+        // Auto remove
+        setTimeout(() => {
+            if (notification && notification.parentElement) {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.remove();
+                    }
+                }, 500);
+            }
+        }, 4000);
+    } catch (error) {
+        console.error('Notification error:', error);
+    }
 }
 
 // Enhanced responsive behavior
 window.addEventListener('resize', () => {
-    if (trendChart) {
-        trendChart.resize();
+    try {
+        if (trendChart && typeof trendChart.resize === 'function') {
+            trendChart.resize();
+        }
+    } catch (error) {
+        console.error('Chart resize error:', error);
     }
 });
 
-// Keyboard shortcuts
+// Keyboard shortcuts with error handling
 document.addEventListener('keydown', (e) => {
-    if (e.ctrlKey || e.metaKey) {
-        switch(e.key) {
-            case 'r':
-                e.preventDefault();
-                refreshDashboard();
-                break;
-            case 'f':
-                e.preventDefault();
-                toggleFullscreen();
-                break;
-            case 'e':
-                e.preventDefault();
-                exportReport();
-                break;
+    try {
+        if (e.ctrlKey || e.metaKey) {
+            switch(e.key) {
+                case 'r':
+                    e.preventDefault();
+                    refreshDashboard();
+                    break;
+                case 'f':
+                    e.preventDefault();
+                    toggleFullscreen();
+                    break;
+                case 'e':
+                    e.preventDefault();
+                    exportReport();
+                    break;
+            }
         }
+    } catch (error) {
+        console.error('Keyboard shortcut error:', error);
+    }
+});
+
+// Prevent MetaMask connection errors (not related to our app)
+window.addEventListener('error', function(e) {
+    if (e.message && e.message.includes('MetaMask')) {
+        e.preventDefault();
+        return false;
     }
 });
 </script>
