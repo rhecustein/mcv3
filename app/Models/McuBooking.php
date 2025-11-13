@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class McuBooking extends Model
 {
@@ -99,6 +100,30 @@ class McuBooking extends Model
     public function result(): BelongsTo
     {
         return $this->belongsTo(Result::class, 'result_id');
+    }
+
+    /**
+     * Review relationship
+     */
+    public function review(): HasOne
+    {
+        return $this->hasOne(Review::class, 'booking_id');
+    }
+
+    /**
+     * Check if booking can be reviewed
+     */
+    public function canBeReviewed(): bool
+    {
+        return $this->status === 'completed' && !$this->review;
+    }
+
+    /**
+     * Check if booking has been reviewed
+     */
+    public function hasReview(): bool
+    {
+        return $this->review !== null;
     }
 
     /**

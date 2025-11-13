@@ -62,6 +62,22 @@ class McuPackage extends Model
     }
 
     /**
+     * Reviews for this package
+     */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class, 'package_id');
+    }
+
+    /**
+     * Approved reviews only
+     */
+    public function approvedReviews(): HasMany
+    {
+        return $this->reviews()->where('status', 'approved');
+    }
+
+    /**
      * Get final price (considering discount)
      */
     public function getFinalPriceAttribute(): float
