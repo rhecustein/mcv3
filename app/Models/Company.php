@@ -2,18 +2,20 @@
 
 namespace App\Models;
 
+use App\Models\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Company extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToTenant;
 
     /**
      * Mass assignable attributes.
      */
 
     protected $fillable = [
+        'tenant_id',
         'name',
         'code',
         'industry_type',

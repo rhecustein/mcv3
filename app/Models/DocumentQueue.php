@@ -2,16 +2,18 @@
 
 namespace App\Models;
 
+use App\Models\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class DocumentQueue extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToTenant;
 
     protected $table = 'document_queues';
 
     protected $fillable = [
+        'tenant_id',
         'result_id',
         'status',
         'generated_file',
