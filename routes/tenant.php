@@ -45,6 +45,16 @@ Route::prefix('mcu')->name('mcu.')->group(function () {
     });
 });
 
+// Corporate B2B Portal
+Route::prefix('corporate')->name('corporate.')->middleware(['auth'])->group(function () {
+    Route::get('/', [\App\Http\Controllers\Corporate\DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/employees', [\App\Http\Controllers\Corporate\DashboardController::class, 'employees'])->name('employees.index');
+    Route::get('/reports', [\App\Http\Controllers\Corporate\DashboardController::class, 'reports'])->name('reports.index');
+});
+
+// Payment Webhooks (no auth required)
+Route::post('/webhooks/midtrans', [\App\Http\Controllers\PaymentWebhookController::class, 'midtransNotification'])->name('webhooks.midtrans');
+
 // All existing routes should be included here
 // For now, we'll use the existing web routes as tenant routes
 // Later, we can move specific routes here
