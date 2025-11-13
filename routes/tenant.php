@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TenantDashboardController;
+use App\Http\Controllers\McuMarketplaceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -25,6 +26,23 @@ Route::prefix('settings')->name('tenant.settings.')->group(function () {
     Route::get('/subscription', [TenantDashboardController::class, 'subscription'])->name('subscription');
     Route::get('/usage', [TenantDashboardController::class, 'usage'])->name('usage');
     Route::get('/billing', [TenantDashboardController::class, 'billing'])->name('billing');
+});
+
+// MCU Marketplace
+Route::prefix('mcu')->name('mcu.')->group(function () {
+    // Marketplace
+    Route::get('/', [McuMarketplaceController::class, 'index'])->name('marketplace.index');
+    Route::get('/packages/{package}', [McuMarketplaceController::class, 'showPackage'])->name('marketplace.package');
+    Route::get('/providers/{provider}', [McuMarketplaceController::class, 'showProvider'])->name('marketplace.provider');
+
+    // Bookings
+    Route::prefix('bookings')->name('bookings.')->group(function () {
+        Route::get('/', [McuMarketplaceController::class, 'myBookings'])->name('index');
+        Route::get('/create/{package}', [McuMarketplaceController::class, 'showBookingForm'])->name('create');
+        Route::post('/create/{package}', [McuMarketplaceController::class, 'storeBooking'])->name('store');
+        Route::get('/{booking}', [McuMarketplaceController::class, 'showBooking'])->name('show');
+        Route::post('/{booking}/cancel', [McuMarketplaceController::class, 'cancelBooking'])->name('cancel');
+    });
 });
 
 // All existing routes should be included here

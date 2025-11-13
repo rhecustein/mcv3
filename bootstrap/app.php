@@ -12,6 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function () {
+            // Platform Admin routes (main domain)
+            Route::middleware(['web'])
+                ->group(base_path('routes/platform.php'));
+
             // Tenant routes (subdomain-based)
             Route::middleware(['web', \App\Http\Middleware\TenantAware::class])
                 ->domain('{tenant}.' . parse_url(config('app.url'), PHP_URL_HOST))

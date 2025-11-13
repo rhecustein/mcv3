@@ -12,9 +12,15 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            // Multi-Tenancy & Subscription (NEW - Sprint 1)
+            // Platform Admin (Sprint 2)
+            PlatformAdminSeeder::class,
+
+            // Multi-Tenancy & Subscription (Sprint 1)
             SubscriptionPlanSeeder::class,
             TenantSeeder::class,
+
+            // MCU Marketplace (Sprint 3)
+            McuSeeder::class,
 
             // Existing Seeders
             UserSeeder::class,
