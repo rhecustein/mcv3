@@ -1032,7 +1032,7 @@ Super Admin Features:
 
 ### 5.3 Mobile App (Optional - Phase 6)
 
-**React Native / Flutter**
+**React Native**
 - Patient app (B2C)
 - Clinic app (for doctors/staff)
 - Company app (for HR)

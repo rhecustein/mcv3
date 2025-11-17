@@ -531,7 +531,7 @@
 ### F5.1: Mobile Application (Optional)
 | # | Feature | Priority | Time | Status | Dependencies |
 |---|---------|----------|------|--------|--------------|
-| F5.1.1 | Patient mobile app (React Native/Flutter) | P2 | XL | ⏳ Pending | - |
+| F5.1.1 | Patient mobile app (React Native) | P2 | XL | ⏳ Pending | - |
 | F5.1.2 | Clinic mobile app (for doctors/staff) | P2 | XL | ⏳ Pending | - |
 | F5.1.3 | Company mobile app (for HR) | P2 | L | ⏳ Pending | - |
 | F5.1.4 | Push notification support | P2 | M | ⏳ Pending | F5.1.1-3 |
