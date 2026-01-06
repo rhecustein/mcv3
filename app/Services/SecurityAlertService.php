@@ -131,7 +131,11 @@ class SecurityAlertService
         return match($type) {
             'critical_login_failures' => "Multiple failed login attempts detected for {$data['email']} from IP {$data['ip']} ({$data['location']}). Total attempts: {$data['attempt_count']}",
             'ip_blocked' => "IP {$data['ip']} has been blocked. Reason: {$data['reason']}. Duration: {$data['duration']} minutes.",
-            'suspicious_activity' => "Suspicious activity detected from IP {$data['ip']}. Activity: {$data['activity'] ?? 'Unknown'}",
+            'suspicious_activity' => sprintf(
+                "Suspicious activity detected from IP %s. Activity: %s",
+                $data['ip'],
+                $data['activity'] ?? 'Unknown'
+            ),
             default => 'Security event detected. Please check logs for details.',
         };
     }

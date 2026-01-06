@@ -1,0 +1,20 @@
+parameters:
+    level: 5
+    paths:
+        - app
+        - config
+        - database
+        - routes
+    excludePaths:
+        - vendor
+        - bootstrap/cache
+        - storage
+        - node_modules (?)
+    ignoreErrors:
+        # Ignore Laravel's dynamic property access
+        - '#Access to an undefined property Illuminate\\Database\\Eloquent\\Model::\$#'
+        # Ignore Laravel's magic methods
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder#'
+        # Ignore Carbon date issues
+        - '#Property .* does not accept Illuminate\\Support\\Carbon#'
+    reportUnmatchedIgnoredErrors: false
