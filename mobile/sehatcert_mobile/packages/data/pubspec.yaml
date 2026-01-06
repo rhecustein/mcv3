@@ -1,0 +1,54 @@
+name: data
+description: Data layer containing API clients, models, and repository implementations
+version: 1.0.0
+publish_to: 'none'
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Core & Domain packages
+  core:
+    path: ../core
+  domain:
+    path: ../domain
+
+  # Networking
+  dio: ^5.4.0
+  retrofit: ^4.0.3
+  pretty_dio_logger: ^1.3.1
+
+  # Code Generation
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.8.1
+
+  # Utilities
+  dartz: ^0.10.1
+  equatable: ^2.0.5
+
+  # Storage
+  shared_preferences: ^2.2.2
+  flutter_secure_storage: ^9.0.0
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Code Generation
+  build_runner: ^2.4.7
+  freezed: ^2.4.6
+  json_serializable: ^6.7.1
+  retrofit_generator: ^8.0.6
+  hive_generator: ^2.0.1
+
+  # Linting
+  very_good_analysis: ^5.1.0
+
+  # Testing
+  mocktail: ^1.0.2

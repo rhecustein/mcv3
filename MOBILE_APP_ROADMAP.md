@@ -2,8 +2,9 @@
 
 **Start Date**: Q1 2026 (February)
 **Target Launch**: Q3 2026 (July-August)
-**Platform**: React Native (iOS + Android)
+**Platform**: Flutter (iOS + Android)
 **Total Timeline**: 24 weeks (6 months)
+**Architecture**: Clean Architecture + BLoC Pattern
 
 ---
 
@@ -19,7 +20,7 @@
 
 **Approach**: Agile/Scrum with 2-week sprints
 **Team Size**:
-- 2 React Native developers
+- 2 Flutter developers (iOS + Android experience)
 - 1 Backend developer (API)
 - 1 UI/UX designer
 - 1 QA tester
@@ -35,21 +36,22 @@
 
 **Week 1: Environment & Infrastructure**
 - [ ] Setup development environment
-  - React Native CLI / Expo setup
+  - Flutter SDK (latest stable)
   - iOS simulator (macOS) + Android emulator
-  - VSCode + extensions (ESLint, Prettier, React Native Tools)
-  - Git repository setup (separate repo: `sehatcert-mobile`)
-- [ ] Choose tech stack
-  - State management: Redux Toolkit vs Zustand
-  - Navigation: React Navigation
-  - API client: Axios + React Query
-  - UI library: React Native Paper vs NativeBase
-  - Form handling: React Hook Form
-  - Testing: Jest + React Native Testing Library
+  - VSCode / Android Studio + Flutter extensions
+  - Git repository setup (monorepo: `sehatcert-mobile`)
+- [ ] Finalize tech stack (Flutter)
+  - State management: flutter_bloc + hydrated_bloc
+  - Navigation: go_router
+  - API client: dio + retrofit
+  - Dependency Injection: get_it + injectable
+  - UI library: Material 3 (built-in)
+  - Form handling: flutter_form_builder + form_builder_validators
+  - Testing: flutter_test + bloc_test + mocktail
 - [ ] Setup CI/CD pipeline
   - GitHub Actions for automated builds
   - Firebase App Distribution for beta testing
-  - CodePush for OTA updates
+  - Codemagic / Fastlane for release automation
 - [ ] Backend API preparation
   - Review existing API endpoints
   - Create missing endpoints (see checklist below)
@@ -63,9 +65,10 @@
   - User flow diagrams
   - Prototype for stakeholder review
 - [ ] Design review & approval
-- [ ] Create reusable React Native components
-  - Button, Input, Card, Header, etc.
-  - Theme configuration (colors, fonts, spacing)
+- [ ] Create reusable Flutter widgets
+  - Custom buttons, inputs, cards, app bars, etc.
+  - Theme configuration (Material 3 theme with SehatCert colors)
+  - Shared widget package for all 3 apps
 
 **Deliverables:**
 - ✅ Dev environment ready
@@ -566,11 +569,16 @@
 
 ```
 ┌─────────────────────────────────────┐
-│     React Native Apps (3 apps)      │
+│      Flutter Apps (3 apps)          │
 ├─────────────────────────────────────┤
 │  - Outlet Staff App                 │
 │  - Patient App                      │
 │  - Company Admin App                │
+│                                     │
+│  Clean Architecture Layers:        │
+│  ├── Presentation (BLoC + UI)      │
+│  ├── Domain (Entities + Use Cases) │
+│  └── Data (Repositories + API)     │
 └────────────┬────────────────────────┘
              │
              │ REST API (JSON)
@@ -594,23 +602,29 @@
 
 **Frontend (Mobile):**
 ```yaml
-Framework: React Native 0.73+
-Language: TypeScript
-State Management: Zustand (lightweight) or Redux Toolkit
-Navigation: React Navigation v6
-API Client: Axios + React Query (caching)
-Form Handling: React Hook Form + Yup validation
-UI Components: React Native Paper (Material Design)
-Icons: React Native Vector Icons
-Date Picker: react-native-date-picker
-PDF Viewer: react-native-pdf
-QR Code: react-native-qrcode-scanner
-Signature: react-native-signature-canvas
-Image Picker: expo-image-picker
-Camera: expo-camera
-Push Notifications: Expo Notifications / Firebase Cloud Messaging
-Crash Reporting: Firebase Crashlytics
-Analytics: Firebase Analytics + Mixpanel
+Framework: Flutter 3.19+ (Dart 3.3+)
+Language: Dart
+Architecture: Clean Architecture + BLoC Pattern
+State Management: flutter_bloc + hydrated_bloc (persistent state)
+Navigation: go_router (declarative routing)
+API Client: dio + retrofit + pretty_dio_logger
+Dependency Injection: get_it + injectable (code generation)
+Code Generation: freezed + json_serializable (immutable models)
+Form Handling: flutter_form_builder + form_builder_validators
+UI Components: Material 3 (built-in) + custom widgets
+Icons: phosphor_flutter / lucide_icons
+Date Picker: flutter_datetime_picker_plus
+PDF Viewer: syncfusion_flutter_pdfviewer / native_pdf_view
+QR Code Scanner: mobile_scanner (fast, native)
+QR Code Generator: qr_flutter
+Signature: signature (canvas-based)
+Image Picker: image_picker
+Camera: camera (official plugin)
+Local Storage: shared_preferences + flutter_secure_storage + hive
+Push Notifications: firebase_messaging + flutter_local_notifications
+Crash Reporting: firebase_crashlytics + sentry_flutter
+Analytics: firebase_analytics + mixpanel_flutter
+Testing: flutter_test + bloc_test + mocktail + golden_toolkit
 ```
 
 **Backend (API):**
@@ -627,23 +641,26 @@ API Documentation: Scribe / OpenAPI (Swagger)
 
 **DevOps:**
 ```yaml
-Version Control: Git (GitHub)
-CI/CD: GitHub Actions
-Beta Distribution: Firebase App Distribution
-OTA Updates: CodePush (Microsoft)
-Monitoring: Sentry / Crashlytics
+Version Control: Git (GitHub monorepo with Melos)
+CI/CD: GitHub Actions + Codemagic / Fastlane
+Beta Distribution: Firebase App Distribution / TestFlight
+OTA Updates: Shorebird (Flutter CodePush alternative)
+Monitoring: Sentry + Firebase Crashlytics + Firebase Performance
 App Store: Apple App Store + Google Play Store
+Code Quality: flutter analyze + dart format + very_good_analysis
 ```
 
 ### Security
 
-- [ ] HTTPS only for all API calls
+- [ ] HTTPS only for all API calls (Dio interceptor)
 - [ ] Token-based authentication (Sanctum)
-- [ ] Secure token storage (react-native-keychain)
-- [ ] Certificate pinning (optional, for high security)
-- [ ] Biometric authentication (fingerprint/face ID)
-- [ ] Input validation & sanitization
-- [ ] No sensitive data in logs
+- [ ] Secure token storage (flutter_secure_storage)
+- [ ] Certificate pinning (dio with certificate pinning)
+- [ ] Biometric authentication (local_auth for fingerprint/face ID)
+- [ ] Input validation & sanitization (freezed + validators)
+- [ ] No sensitive data in logs (custom logger with masking)
+- [ ] Code obfuscation (Flutter build --obfuscate)
+- [ ] Root/Jailbreak detection (flutter_jailbreak_detection)
 - [ ] Compliance with GDPR/privacy laws
 
 ### Performance Targets
@@ -676,17 +693,18 @@ App Store: Apple App Store + Google Play Store
 - User flow optimization
 - Usability testing
 
-**React Native Developer #1 (Lead):**
-- Architecture decisions
+**Flutter Developer #1 (Lead):**
+- Architecture decisions (Clean Architecture + BLoC)
 - Outlet Staff App (primary)
+- Shared packages setup
 - Code reviews
 - Technical documentation
 
-**React Native Developer #2:**
+**Flutter Developer #2:**
 - Patient App (primary)
 - Company Admin App (primary)
-- Shared components
-- Testing
+- Shared widgets library
+- Testing & code generation
 
 **Backend Developer:**
 - API endpoint development
@@ -697,8 +715,9 @@ App Store: Apple App Store + Google Play Store
 **QA Tester:**
 - Test case creation
 - Manual testing (all devices)
-- Automated testing (Detox)
+- Automated testing (Flutter integration tests + widget tests)
 - Bug reporting & tracking
+- Golden file testing
 
 ### Extended Team (Part-time/Consultant)
 
@@ -716,8 +735,8 @@ App Store: Apple App Store + Google Play Store
 |------|------------------|----------|-------------|
 | Project Manager (0.5 FTE) | 15,000,000 | 6 months | 90,000,000 |
 | UI/UX Designer (0.5 FTE) | 12,000,000 | 3 months | 36,000,000 |
-| React Native Dev #1 | 25,000,000 | 6 months | 150,000,000 |
-| React Native Dev #2 | 20,000,000 | 6 months | 120,000,000 |
+| Flutter Dev #1 (Senior) | 25,000,000 | 6 months | 150,000,000 |
+| Flutter Dev #2 (Mid-level) | 20,000,000 | 6 months | 120,000,000 |
 | Backend Developer (0.5 FTE) | 20,000,000 | 3 months | 60,000,000 |
 | QA Tester (0.5 FTE) | 10,000,000 | 4 months | 40,000,000 |
 | **Subtotal** | | | **496,000,000** |
@@ -729,8 +748,9 @@ App Store: Apple App Store + Google Play Store
 | Apple Developer Account | 1,500,000 | Yearly |
 | Google Play Console | 350,000 | One-time |
 | Firebase (Blaze Plan) | 500,000 | Monthly × 6 |
-| CodePush (Basic) | 0 | Free |
-| Sentry/Crashlytics | 0 | Free tier |
+| Shorebird (OTA updates) | 0-1,500,000 | Free tier or Pro |
+| Sentry (Error tracking) | 0 | Free tier |
+| Codemagic CI/CD | 0-2,000,000 | Free tier or paid |
 | Design Tools (Figma Pro) | 150,000 | Monthly × 3 |
 | **Subtotal** | | **~6,000,000** |
 
@@ -829,38 +849,61 @@ App Store: Apple App Store + Google Play Store
 ### Setup Development Environment
 
 ```bash
-# 1. Install Node.js (v18+)
-brew install node  # macOS
-# or download from nodejs.org
+# 1. Install Flutter SDK (latest stable)
+# macOS:
+brew install flutter
 
-# 2. Install React Native CLI
-npm install -g react-native-cli
+# Linux:
+# Download from https://flutter.dev/docs/get-started/install/linux
 
-# 3. Install Expo CLI (optional, for managed workflow)
-npm install -g expo-cli
+# Windows:
+# Download from https://flutter.dev/docs/get-started/install/windows
 
-# 4. Install Xcode (iOS development) - macOS only
+# 2. Verify Flutter installation
+flutter doctor
+
+# 3. Install Xcode (iOS development) - macOS only
 # Download from Mac App Store
+sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+sudo xcodebuild -runFirstLaunch
 
-# 5. Install Android Studio (Android development)
+# 4. Install Android Studio (Android development)
 # Download from developer.android.com
+# Install Flutter and Dart plugins
+
+# 5. Install Melos (monorepo management)
+dart pub global activate melos
 
 # 6. Clone repository
 git clone https://github.com/sehatcert/mobile.git
 cd mobile
 
-# 7. Install dependencies
-npm install
+# 7. Bootstrap monorepo with Melos
+melos bootstrap
 
 # 8. Setup environment variables
 cp .env.example .env
 # Edit .env with API endpoint
 
-# 9. Run on iOS
-npx react-native run-ios
+# 9. Generate code (for freezed, json_serializable, injectable)
+melos run codegen
 
-# 10. Run on Android
-npx react-native run-android
+# 10. Run on iOS (Outlet App example)
+cd apps/outlet_app
+flutter run
+
+# 11. Run on Android
+cd apps/outlet_app
+flutter run -d <device-id>
+
+# 12. Run all tests
+melos run test
+
+# 13. Format code
+melos run format
+
+# 14. Analyze code
+melos run analyze
 ```
 
 ### Project Structure
@@ -868,17 +911,41 @@ npx react-native run-android
 ```
 sehatcert-mobile/
 ├── apps/
-│   ├── outlet/          # Outlet Staff App
-│   ├── patient/         # Patient App
-│   └── company/         # Company Admin App
+│   ├── outlet_app/           # Outlet Staff App (Flutter)
+│   ├── patient_app/          # Patient App (Flutter)
+│   └── company_app/          # Company Admin App (Flutter)
 ├── packages/
-│   ├── ui/              # Shared UI components
-│   ├── api/             # API client & hooks
-│   ├── auth/            # Authentication logic
-│   └── utils/           # Utility functions
+│   ├── core/                 # Core utilities, constants, extensions
+│   ├── data/                 # Data layer: API clients, models, repositories
+│   ├── domain/               # Domain layer: Entities, use cases, repository interfaces
+│   └── presentation/         # Presentation layer: Shared widgets, themes, BLoCs
 ├── .github/
-│   └── workflows/       # CI/CD pipelines
-└── package.json
+│   └── workflows/            # CI/CD pipelines (GitHub Actions)
+├── melos.yaml                # Monorepo configuration
+├── analysis_options.yaml     # Dart/Flutter linting rules
+└── README.md
+```
+
+Each app follows Clean Architecture:
+```
+apps/outlet_app/
+├── lib/
+│   ├── core/
+│   │   ├── di/              # Dependency injection (get_it)
+│   │   ├── router/          # Navigation (go_router)
+│   │   └── theme/           # App theme
+│   ├── features/
+│   │   ├── auth/
+│   │   │   ├── data/        # Data sources, repositories impl
+│   │   │   ├── domain/      # Entities, use cases
+│   │   │   └── presentation/ # BLoCs, pages, widgets
+│   │   ├── dashboard/
+│   │   ├── patients/
+│   │   └── certificates/
+│   └── main.dart            # Entry point
+├── test/                    # Unit & widget tests
+├── integration_test/        # Integration tests
+└── pubspec.yaml
 ```
 
 ---
