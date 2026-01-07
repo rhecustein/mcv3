@@ -18,7 +18,10 @@
       "Bash(cmd /c \"php vendor/bin/pint --test\")",
       "Bash(cmd /c \"php artisan --version\")",
       "Bash(cmd.exe /c \"php artisan --version 2>&1\")",
-      "Bash(powershell -Command \"php vendor/bin/pint --test\")"
+      "Bash(powershell -Command \"php vendor/bin/pint --test\")",
+      "Bash(git commit:*)",
+      "Bash(test:*)",
+      "Bash(git restore:*)"
     ]
   }
 }
