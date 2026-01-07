@@ -1,15 +1,17 @@
 parameters:
-    level: 5
+    level: 8
     paths:
         - app
         - config
         - database
         - routes
+        - tests
     excludePaths:
         - vendor
         - bootstrap/cache
         - storage
-        - node_modules (?)
+        - node_modules
+        - app/Http/Middleware/VerifyCsrfToken.php
     ignoreErrors:
         # Ignore Laravel's dynamic property access
         - '#Access to an undefined property Illuminate\\Database\\Eloquent\\Model::\$#'
@@ -17,4 +19,12 @@ parameters:
         - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder#'
         # Ignore Carbon date issues
         - '#Property .* does not accept Illuminate\\Support\\Carbon#'
+        # Ignore Eloquent collection methods
+        - '#Method Illuminate\\Database\\Eloquent\\Collection.*#'
+        # Ignore Laravel Facade methods
+        - '#.*on class Illuminate\\Support\\Facades\\.*#'
     reportUnmatchedIgnoredErrors: false
+    checkMissingIterableValueType: false
+    checkGenericClassInNonGenericObjectType: false
+    polluteScopeWithLoopInitialAssignments: false
+    polluteScopeWithAlwaysIterableForeach: false

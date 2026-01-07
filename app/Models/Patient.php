@@ -54,5 +54,36 @@ class Patient extends Model
         return $this->hasMany(Result::class);
     }
 
-    
+    /**
+     * Feedback from company about patient
+     */
+    public function feedbacks()
+    {
+        return $this->hasMany(CompanyPatientFeedback::class);
+    }
+
+    /**
+     * Many-to-many relationship with companies via pivot table
+     */
+    public function companies()
+    {
+        return $this->belongsToMany(Company::class, 'patient_company_relations')
+            ->withTimestamps();
+    }
+
+    /**
+     * Medical diagnoses for this patient
+     */
+    public function diagnoses()
+    {
+        return $this->hasMany(MedicalDiagnosis::class);
+    }
+
+    /**
+     * MCU (Medical Check Up) bookings
+     */
+    public function mcuBookings()
+    {
+        return $this->hasMany(McuBooking::class);
+    }
 }

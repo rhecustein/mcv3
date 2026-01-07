@@ -55,4 +55,28 @@ class Outlet extends Model
     {
         return $this->hasMany(Doctor::class);
     }
+
+    /**
+     * PDF generation queue for this outlet
+     */
+    public function documentQueues()
+    {
+        return $this->hasMany(DocumentQueue::class);
+    }
+
+    /**
+     * Patients registered at this outlet
+     */
+    public function patients()
+    {
+        return $this->hasMany(Patient::class);
+    }
+
+    /**
+     * Medical diagnoses created at this outlet
+     */
+    public function diagnoses()
+    {
+        return $this->hasMany(MedicalDiagnosis::class);
+    }
 }

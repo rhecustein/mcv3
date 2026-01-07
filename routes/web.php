@@ -25,6 +25,10 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\LegacyResultController;
 use App\Http\Controllers\OutletProfileController;
 use App\Http\Controllers\CompanyClientController;
+use App\Http\Controllers\CompanyDashboardController;
+use App\Http\Controllers\CompanyPatientController;
+use App\Http\Controllers\CompanyReportController;
+use App\Http\Controllers\CompanyStatisticsController;
 
 use App\Models\Result;
 use App\Models\Patient;
@@ -441,13 +445,13 @@ Route::middleware(['auth', CheckRoleType::class . ':companies'])
     ->group(function () {
     
     // ========== DASHBOARD ==========
-    Route::get('/dashboard', [CompanyClientController::class, 'dashboard'])->name('dashboard');
+    Route::get('/dashboard', [CompanyDashboardController::class, 'dashboard'])->name('dashboard');
     
     // ========== EMPLOYEE HEALTH MANAGEMENT ==========
     Route::prefix('patients')->name('patients.')->group(function () {
-        Route::get('/', [CompanyClientController::class, 'patients'])->name('index');
-        Route::get('/export', [CompanyClientController::class, 'exportPatients'])->name('export');
-        Route::get('/{patient}', [CompanyClientController::class, 'showPatient'])->name('show');
+        Route::get('/', [CompanyPatientController::class, 'index'])->name('index');
+        Route::get('/export', [CompanyPatientController::class, 'export'])->name('export');
+        Route::get('/{patient}', [CompanyPatientController::class, 'show'])->name('show');
     });
     
     // ========== HEALTH HISTORY ==========
@@ -459,17 +463,18 @@ Route::middleware(['auth', CheckRoleType::class . ':companies'])
     
     // ========== HEALTH REPORTS ==========
     Route::prefix('reports')->name('reports.')->group(function () {
-        Route::get('/', [CompanyClientController::class, 'reports'])->name('index');
-        Route::get('/monthly', [CompanyClientController::class, 'monthlyReport'])->name('monthly');
-        Route::get('/export', [CompanyClientController::class, 'exportReport'])->name('export');
+        Route::get('/', [CompanyReportController::class, 'index'])->name('index');
+        Route::get('/monthly', [CompanyReportController::class, 'monthly'])->name('monthly');
+        Route::get('/export', [CompanyReportController::class, 'export'])->name('export');
         Route::get('/health-summary', [CompanyClientController::class, 'healthSummary'])->name('health-summary');
     });
     
     // ========== STATISTICS & ANALYTICS ==========
     Route::prefix('statistics')->name('statistics.')->group(function () {
-        Route::get('/', [CompanyClientController::class, 'statistics'])->name('index');
+        Route::get('/', [CompanyStatisticsController::class, 'index'])->name('index');
         Route::get('/trends', [CompanyClientController::class, 'healthTrends'])->name('trends');
-        Route::get('/api/chart-data', [CompanyClientController::class, 'getChartData'])->name('api.chart');
+        Route::get('/api/chart-data', [CompanyStatisticsController::class, 'getChartData'])->name('api.chart');
+        Route::get('/api/dashboard/stats', [CompanyStatisticsController::class, 'getDashboardStats'])->name('api.stats');
     });
     
     // ========== CERTIFICATES & DOCUMENTS ==========
@@ -489,9 +494,9 @@ Route::middleware(['auth', CheckRoleType::class . ':companies'])
     
     // ========== PROFILE MANAGEMENT ==========
     Route::prefix('profile')->name('profile.')->group(function () {
-        Route::get('/', [CompanyClientController::class, 'profile'])->name('show');
-        Route::get('/edit', [CompanyClientController::class, 'editProfile'])->name('edit');
-        Route::put('/update', [CompanyClientController::class, 'updateProfile'])->name('update');
+        Route::get('/', [CompanyDashboardController::class, 'profile'])->name('show');
+        Route::get('/edit', [CompanyDashboardController::class, 'editProfile'])->name('edit');
+        Route::put('/update', [CompanyDashboardController::class, 'updateProfile'])->name('update');
     });
     
     // ========== SETTINGS ==========
@@ -502,6 +507,9 @@ Route::middleware(['auth', CheckRoleType::class . ':companies'])
         Route::get('/security', [CompanyClientController::class, 'security'])->name('security');
         Route::put('/password', [CompanyClientController::class, 'updatePassword'])->name('password');
     });
+
+    // ========== CACHE MANAGEMENT ==========
+    Route::post('/cache/clear', [CompanyDashboardController::class, 'clearCache'])->name('cache.clear');
     
     // ========== SUPPORT ==========
     Route::prefix('support')->name('support.')->group(function () {

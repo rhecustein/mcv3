@@ -101,11 +101,35 @@ class Result extends Model
     }
 
     /**
-     * Alternative diagnosis relationship for ICD codes
+     * Get ICD Master through diagnosis
+     * Fixed: Use hasOneThrough instead of direct belongsTo
+     */
+    public function icdMaster()
+    {
+        return $this->hasOneThrough(
+            IcdMaster::class,
+            MedicalDiagnosis::class,
+            'id', // Foreign key on medical_diagnoses table
+            'id', // Foreign key on icd_masters table
+            'medical_diagnosis_id', // Local key on results table
+            'icd_master_id' // Local key on medical_diagnoses table
+        );
+    }
+
+    /**
+     * Legacy alias - kept for backward compatibility
      */
     public function icdDiagnosis()
     {
-        return $this->belongsTo(IcdMaster::class, 'medical_diagnosis_id');
+        return $this->icdMaster();
+    }
+
+    /**
+     * Document queue for PDF generation
+     */
+    public function documentQueue()
+    {
+        return $this->hasOne(DocumentQueue::class);
     }
 
     public function companyIS()

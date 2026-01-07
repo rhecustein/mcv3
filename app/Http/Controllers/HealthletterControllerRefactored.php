@@ -15,14 +15,10 @@ use App\Models\Company;
 use App\Models\Result;
 
 /**
- * Healthletter Controller - REFACTORED VERSION
+ * Refactored Healthletter Controller
  * Uses Repository Pattern and Service Layer
- *
- * Refactored from 1,275 lines to 388 lines (70% reduction)
- * Date: January 7, 2026
- * Original backup: HealthletterController.php.backup
  */
-class HealthletterController extends Controller
+class HealthletterControllerRefactored extends Controller
 {
     public function __construct(
         protected ResultService $resultService,

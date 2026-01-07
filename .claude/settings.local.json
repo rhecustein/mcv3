@@ -1,7 +1,24 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(find:*)",
+      "Bash(php artisan migrate:*)",
+      "Bash(dir:*)",
+      "Bash(where:*)",
+      "Bash(cmd /c php artisan migrate --path=database/migrations/2026_01_08_100000_audit_foreign_key_data.php)",
+      "Bash(cmd.exe /c \"php artisan --version\")",
+      "Bash(printf:*)",
+      "Bash(composer show:*)",
+      "Bash(git config:*)",
+      "Bash(chmod:*)",
+      "Bash(./vendor/bin/pint:*)",
+      "Bash(composer require:*)",
+      "Bash(cmd /c \"php --version\")",
+      "Bash(cmd /c \"php vendor/bin/pint --test\")",
+      "Bash(cmd /c \"php artisan --version\")",
+      "Bash(cmd.exe /c \"php artisan --version 2>&1\")",
+      "Bash(powershell -Command \"php vendor/bin/pint --test\")"
     ]
   }
 }

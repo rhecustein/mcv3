@@ -1,22 +1,5 @@
 <?php
 
-/**
- * DEPRECATED CONTROLLER - DO NOT USE FOR NEW FEATURES
- *
- * This controller has been refactored and split into smaller, focused controllers:
- * - CompanyDashboardController: Dashboard, profile management, cache operations
- * - CompanyPatientController: Employee/patient management, listing, export
- * - CompanyReportController: Health reports, monthly reports, analytics export
- * - CompanyStatisticsController: Statistics page, API endpoints for charts
- * - CompanyService: All business logic and analytics methods
- *
- * Migration completed: January 7, 2026
- * Backup location: CompanyClientController.php.backup
- *
- * Some legacy routes still use this controller. They will be migrated gradually.
- * New features should use the new controllers.
- */
-
 namespace App\Http\Controllers;
 
 use App\Models\Company;
@@ -33,9 +16,6 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 
-/**
- * @deprecated Use CompanyDashboardController, CompanyPatientController, CompanyReportController, CompanyStatisticsController instead
- */
 class CompanyClientController extends Controller
 {
     /**

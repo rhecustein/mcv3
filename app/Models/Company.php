@@ -84,4 +84,20 @@ class Company extends Model
     {
         return $this->hasMany(PackageTransaction::class);
     }
+
+    /**
+     * Patient feedback for this company
+     */
+    public function feedbacks()
+    {
+        return $this->hasMany(CompanyPatientFeedback::class);
+    }
+
+    /**
+     * Corporate employees registered in the system
+     */
+    public function corporateEmployees()
+    {
+        return $this->hasMany(CorporateEmployee::class);
+    }
 }

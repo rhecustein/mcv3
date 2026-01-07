@@ -71,4 +71,12 @@ class Doctor extends Model
     {
         return $this->hasMany(Result::class);
     }
+
+    /**
+     * Medical diagnoses created by this doctor
+     */
+    public function diagnoses()
+    {
+        return $this->hasMany(MedicalDiagnosis::class);
+    }
 }

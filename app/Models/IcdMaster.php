@@ -35,4 +35,38 @@ class IcdMaster extends Model
     {
         return $this->belongsTo(IcdMaster::class, 'parent_code', 'code');
     }
+
+    /**
+     * Medical diagnoses using this ICD code
+     */
+    public function diagnoses()
+    {
+        return $this->hasMany(MedicalDiagnosis::class, 'icd_master_id');
+    }
+
+    /**
+     * Scope: Search by code or title
+     */
+    public function scopeSearch($query, string $keyword)
+    {
+        return $query->where('code', 'like', "%{$keyword}%")
+            ->orWhere('title', 'like', "%{$keyword}%")
+            ->orWhere('description', 'like', "%{$keyword}%");
+    }
+
+    /**
+     * Scope: Filter by chapter
+     */
+    public function scopeChapter($query, string $chapter)
+    {
+        return $query->where('chapter', $chapter);
+    }
+
+    /**
+     * Scope: Filter by version
+     */
+    public function scopeVersion($query, string $version)
+    {
+        return $query->where('version', $version);
+    }
 }

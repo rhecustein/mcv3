@@ -39,4 +39,44 @@ class MedicalDiagnosis extends Model
     {
         return $this->belongsTo(IcdMaster::class, 'icd_master_id');
     }
+
+    /**
+     * Alias for icd relationship for consistency
+     */
+    public function icdMaster()
+    {
+        return $this->icd();
+    }
+
+    /**
+     * Results using this diagnosis
+     */
+    public function results()
+    {
+        return $this->hasMany(Result::class, 'medical_diagnosis_id');
+    }
+
+    /**
+     * Scope: Filter by patient
+     */
+    public function scopeForPatient($query, int $patientId)
+    {
+        return $query->where('patient_id', $patientId);
+    }
+
+    /**
+     * Scope: Filter by doctor
+     */
+    public function scopeForDoctor($query, int $doctorId)
+    {
+        return $query->where('doctor_id', $doctorId);
+    }
+
+    /**
+     * Scope: Recent diagnoses
+     */
+    public function scopeRecent($query, int $days = 30)
+    {
+        return $query->where('diagnosed_at', '>=', now()->subDays($days));
+    }
 }

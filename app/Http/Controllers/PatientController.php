@@ -6,6 +6,9 @@ use App\Models\Patient;
 use App\Models\Outlet;
 use App\Models\Company;
 use App\Models\User;
+use App\Helpers\PasswordHelper;
+use App\Http\Requests\Patient\StorePatientRequest;
+use App\Http\Requests\Patient\UpdatePatientRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -81,26 +84,20 @@ class PatientController extends Controller
         return view('admin.patients.create', compact('outlets', 'companies'));
     }
 
-    public function store(Request $request)
+    public function store(StorePatientRequest $request)
     {
-        $request->validate([
-            'full_name'   => 'required|string|max:255',
-            'gender'      => 'nullable|in:L,P',
-            'birth_date'  => 'nullable|date',
-            'phone'       => 'nullable|string|max:20',
-            'nik'         => 'nullable|string|max:50',
-            'identity'    => 'nullable|string|max:50',
-            'address'     => 'nullable|string|max:255',
-            'outlet_id'   => 'required|exists:outlets,id',
-            'company_id'  => 'nullable|exists:companies,id',
-        ]);
+        // Authorization and validation handled by FormRequest
 
-        // Buat user otomatis
+        // Generate secure password
+        $passwordData = PasswordHelper::generateForNewUser();
+
+        // Create user with secure password
         $user = User::create([
             'name' => $request->full_name,
             'email' => 'auto_' . uniqid() . '@mail.local',
-            'password' => Hash::make('password123'),
+            'password' => $passwordData['password'],
             'role_type' => 'patient',
+            'must_change_password' => $passwordData['must_change_password'],
         ]);
 
         Patient::create([
@@ -122,14 +119,16 @@ class PatientController extends Controller
 
     public function show(Patient $patient)
     {
-        $this->authorizeOutletAccess($patient);
+        // Authorization check using policy
+        $this->authorize('view', $patient);
 
         return view('admin.patients.show', compact('patient'));
     }
 
     public function edit(Patient $patient)
     {
-        $this->authorizeOutletAccess($patient);
+        // Authorization check using policy
+        $this->authorize('update', $patient);
 
         $admin = auth()->user()->admin;
         $outlets = Outlet::where('admin_id', $admin->id)->get();
@@ -138,21 +137,9 @@ class PatientController extends Controller
         return view('admin.patients.edit', compact('patient', 'outlets', 'companies'));
     }
 
-    public function update(Request $request, Patient $patient)
+    public function update(UpdatePatientRequest $request, Patient $patient)
     {
-        $this->authorizeOutletAccess($patient);
-
-        $request->validate([
-            'full_name'   => 'required|string|max:255',
-            'gender'      => 'nullable|in:L,P',
-            'birth_date'  => 'nullable|date',
-            'phone'       => 'nullable|string|max:20',
-            'nik'         => 'nullable|string|max:50',
-            'identity'    => 'nullable|string|max:50',
-            'address'     => 'nullable|string|max:255',
-            'outlet_id'   => 'required|exists:outlets,id',
-            'company_id'  => 'nullable|exists:companies,id',
-        ]);
+        // Authorization and validation handled by FormRequest
 
         $patient->update([
             'full_name'    => $request->full_name,
@@ -176,24 +163,12 @@ class PatientController extends Controller
 
     public function destroy(Patient $patient)
     {
-        $this->authorizeOutletAccess($patient);
+        // Authorization check using policy
+        $this->authorize('delete', $patient);
 
         $patient->user?->delete();
         $patient->delete();
 
         return back()->with('success', 'Pasien berhasil dihapus.');
-    }
-
-    /**
-     * Helper: Validasi outlet milik admin
-     */
-    private function authorizeOutletAccess(Patient $patient)
-    {
-        $admin = auth()->user()->admin;
-        $outletIds = Outlet::where('admin_id', $admin->id)->pluck('id');
-
-        if (!$outletIds->contains($patient->outlet_id)) {
-            abort(403, 'Anda tidak memiliki akses ke pasien ini.');
-        }
     }
 }
