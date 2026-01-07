@@ -1,0 +1,127 @@
+name: sehatcert_mobile
+repository: https://github.com/sehatcert/mobile
+
+packages:
+  - apps/**
+  - packages/**
+
+command:
+  bootstrap:
+    environment:
+      sdk: ">=3.3.0 <4.0.0"
+      flutter: ">=3.19.0"
+
+    hooks:
+      post: melos run codegen
+
+scripts:
+  # Code generation
+  codegen:
+    run: melos exec -- "flutter pub run build_runner build --delete-conflicting-outputs"
+    description: Run code generation for all packages
+    packageFilters:
+      dependsOn: build_runner
+
+  codegen:watch:
+    run: melos exec -- "flutter pub run build_runner watch --delete-conflicting-outputs"
+    description: Watch and run code generation
+    packageFilters:
+      dependsOn: build_runner
+
+  # Testing
+  test:
+    run: melos exec -- "flutter test"
+    description: Run all Flutter tests for all packages
+    packageFilters:
+      dirExists: test
+
+  test:unit:
+    run: melos exec -- "flutter test test/unit"
+    description: Run unit tests only
+    packageFilters:
+      dirExists: test/unit
+
+  test:widget:
+    run: melos exec -- "flutter test test/widget"
+    description: Run widget tests only
+    packageFilters:
+      dirExists: test/widget
+
+  test:integration:
+    run: melos exec -- "flutter test integration_test"
+    description: Run integration tests
+    packageFilters:
+      dirExists: integration_test
+
+  test:coverage:
+    run: melos exec -- "flutter test --coverage"
+    description: Run tests with coverage
+    packageFilters:
+      dirExists: test
+
+  # Code quality
+  analyze:
+    run: melos exec -- "flutter analyze"
+    description: Run Flutter analyzer for all packages
+
+  format:
+    run: melos exec -- "dart format ."
+    description: Format all Dart code
+
+  format:check:
+    run: melos exec -- "dart format --set-exit-if-changed ."
+    description: Check if Dart code is formatted
+
+  # Cleanup
+  clean:
+    run: melos exec -- "flutter clean"
+    description: Clean all packages
+
+  clean:deep:
+    run: |
+      melos clean
+      rm -rf pubspec.lock
+      rm -rf **/pubspec.lock
+      melos bootstrap
+    description: Deep clean and re-bootstrap
+
+  # Build
+  build:android:
+    run: melos exec -c 1 -- "flutter build apk"
+    description: Build Android APKs
+    packageFilters:
+      scope: "*_app"
+
+  build:ios:
+    run: melos exec -c 1 -- "flutter build ios"
+    description: Build iOS apps
+    packageFilters:
+      scope: "*_app"
+
+  build:appbundle:
+    run: melos exec -c 1 -- "flutter build appbundle"
+    description: Build Android App Bundle for Play Store
+    packageFilters:
+      scope: "*_app"
+
+  # Run apps
+  run:outlet:
+    run: cd apps/outlet_app && flutter run
+    description: Run Outlet Staff App
+
+  run:patient:
+    run: cd apps/patient_app && flutter run
+    description: Run Patient App
+
+  run:company:
+    run: cd apps/company_app && flutter run
+    description: Run Company Admin App
+
+  # Version management
+  version:
+    run: melos version
+    description: Version packages
+
+  publish:
+    run: melos publish
+    description: Publish packages to pub.dev
