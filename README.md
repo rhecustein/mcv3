@@ -1,61 +1,506 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# MCv3 - Multi-Tenant Healthcare Platform
 
 <p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+  <img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo">
 </p>
 
-## About Laravel
+## 📋 Overview
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+MCv3 adalah platform manajemen kesehatan berbasis Laravel 12 dengan arsitektur multi-tenant untuk mengelola klinik kesehatan, medical checkup (MCU), dan konsultasi psikologi. Platform ini mendukung model bisnis B2B (corporate) dan B2C (individual).
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## ✨ Features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### 🏥 Core Features
+- **Multi-Tenant Architecture** - Subdomain-based tenant isolation
+- **Medical Checkup Management** - Package management, booking, dan reporting
+- **Psychology Consultation** - Video/audio/chat sessions dengan psikolog berlisensi
+- **Corporate Health Management** - Employee wellness programs
+- **Payment Integration** - Midtrans payment gateway
+- **Role-Based Access Control** - Spatie Permission untuk granular permissions
 
-## Learning Laravel
+### 🧠 Psychology Module
+- Psychologist marketplace dengan filtering (expertise, city, specialization)
+- Session booking dengan availability checking
+- Multiple session types (video, audio, chat, onsite)
+- Emergency session support
+- Session rating & feedback
+- Automated reminders
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 👥 Corporate Features
+- Employee enrollment & management
+- Health report analytics
+- Voucher system
+- Aggregated wellness insights (anonymous)
+- Compliance reporting
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### 🔒 Security Features
+- Laravel Sanctum - API authentication
+- Session management & auto-logout
+- IP locking
+- Activity logging (Spatie Activity Log)
+- Multi-factor authentication support
+- Rate limiting
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 🛠️ Tech Stack
 
-## Laravel Sponsors
+### Backend
+- **Laravel 12** - Latest PHP framework
+- **PHP 8.2+** - Modern PHP features
+- **MySQL 8** - Primary database
+- **Redis** - Caching & queue management
+- **Laravel Sanctum** - API authentication
+- **Laravel Telescope** - Debugging & monitoring
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Frontend
+- **Vite 6** - Modern build tool
+- **Tailwind CSS 4** - Utility-first CSS
+- **Alpine.js** - Lightweight JavaScript framework
+- **Chart.js** - Data visualization
+- **CKEditor 5** - Rich text editing
 
-### Premium Partners
+### Testing
+- **Pest PHP** - Modern testing framework
+- **PHPUnit** - Unit testing foundation
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### DevOps
+- **Laravel Pint** - Code formatting
+- **Laravel Sail** - Docker development environment
 
-## Contributing
+## 📦 Installation
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Prerequisites
+- PHP 8.2 or higher
+- Composer
+- Node.js 18+ & NPM
+- MySQL 8.0+
+- Redis (optional but recommended)
 
-## Code of Conduct
+### Step 1: Clone Repository
+```bash
+git clone https://github.com/your-org/mcv3.git
+cd mcv3
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Step 2: Install Dependencies
+```bash
+# Install PHP dependencies
+composer install
 
-## Security Vulnerabilities
+# Install Node dependencies
+npm install
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Step 3: Environment Configuration
+```bash
+# Copy environment file
+cp .env.example .env
 
-## License
+# Generate application key
+php artisan key:generate
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Step 4: Configure Database
+Edit `.env` file:
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=mcv3
+DB_USERNAME=root
+DB_PASSWORD=your_password
+```
+
+### Step 5: Run Migrations & Seeders
+```bash
+# Run migrations
+php artisan migrate
+
+# Seed database with sample data (optional)
+php artisan db:seed
+```
+
+### Step 6: Build Assets
+```bash
+# Development
+npm run dev
+
+# Production
+npm run build
+```
+
+### Step 7: Start Development Server
+```bash
+# Option 1: Using Laravel Artisan
+php artisan serve
+
+# Option 2: Using Composer script (recommended - runs server, queue, and vite)
+composer dev
+```
+
+Visit: `http://localhost:8000`
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+composer test
+
+# Run tests with coverage
+php artisan test --coverage
+
+# Run specific test file
+php artisan test tests/Feature/Api/V1/PsychologySessionApiTest.php
+
+# Run tests in watch mode (auto-reload on file changes)
+php artisan test --watch
+```
+
+### Current Test Coverage
+- **Model Tests**: Psychologist, PsychologySession
+- **API Tests**: Psychology Sessions, Psychologists, Patients
+- **Feature Tests**: Booking flow, cancellation, rating
+- **Target Coverage**: 80%+
+
+## 🚀 Deployment
+
+### Production Checklist
+- [ ] Set `APP_ENV=production`
+- [ ] Set `APP_DEBUG=false`
+- [ ] Configure proper `APP_URL`
+- [ ] Setup SSL certificate
+- [ ] Configure Redis for cache & sessions
+- [ ] Setup queue workers
+- [ ] Enable OPcache
+- [ ] Configure backup strategy
+- [ ] Setup monitoring (Sentry, Laravel Pulse)
+- [ ] Configure CORS settings
+- [ ] Setup CDN for static assets
+
+### Deployment Script
+```bash
+# Pull latest code
+git pull origin main
+
+# Install dependencies (production)
+composer install --no-dev --optimize-autoloader
+
+# Run migrations
+php artisan migrate --force
+
+# Cache optimization
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+# Restart queue workers
+php artisan queue:restart
+
+# Reload PHP-FPM
+sudo systemctl reload php8.2-fpm
+```
+
+## 📚 API Documentation
+
+### Base URL
+```
+Production: https://api.yourdomain.com
+Development: http://localhost:8000/api
+```
+
+### Authentication
+MCv3 uses Laravel Sanctum for API authentication.
+
+#### Obtaining API Token
+```bash
+POST /api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "password"
+}
+
+# Response
+{
+  "token": "1|xxxxxxxxxxxxxxxxxxxxx",
+  "user": { ... }
+}
+```
+
+#### Using API Token
+```bash
+GET /api/v1/psychology/sessions
+Authorization: Bearer 1|xxxxxxxxxxxxxxxxxxxxx
+```
+
+### API Endpoints
+
+#### Psychology Module
+
+**List Psychologists**
+```http
+GET /api/v1/psychologists
+Query Parameters:
+  - expertise: string (e.g., "anxiety", "depression")
+  - city: string
+  - specialization: string
+  - accepts_emergency: boolean
+  - per_page: integer (1-100)
+```
+
+**Get Psychologist Details**
+```http
+GET /api/v1/psychologists/{id}
+```
+
+**Check Availability**
+```http
+GET /api/v1/psychologists/{id}/availability?date=2025-11-20
+```
+
+**Book Session**
+```http
+POST /api/v1/psychology/sessions
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "psychologist_id": 1,
+  "session_type": "video",
+  "scheduled_at": "2025-11-20T10:00:00Z",
+  "client_concern": "Stress management"
+}
+```
+
+**List My Sessions**
+```http
+GET /api/v1/psychology/sessions
+Authorization: Bearer {token}
+Query Parameters:
+  - status: string (scheduled, completed, cancelled)
+  - per_page: integer
+```
+
+**Cancel Session**
+```http
+POST /api/v1/psychology/sessions/{id}/cancel
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "reason": "Personal emergency"
+}
+```
+
+**Rate Session**
+```http
+POST /api/v1/psychology/sessions/{id}/rate
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "rating": 5,
+  "feedback": "Excellent session!"
+}
+```
+
+### Rate Limiting
+- Default: 60 requests per minute per IP
+- Authenticated: 1000 requests per minute per user
+
+### Response Format
+All API responses follow this structure:
+
+**Success (200-299)**
+```json
+{
+  "data": { ... },
+  "meta": { ... },
+  "links": { ... }
+}
+```
+
+**Error (400-599)**
+```json
+{
+  "message": "Error message",
+  "errors": {
+    "field_name": ["Validation error message"]
+  }
+}
+```
+
+## 🏗️ Architecture
+
+### Multi-Tenant Architecture
+MCv3 menggunakan subdomain-based multi-tenancy:
+- Main domain: `mcv3.com`
+- Tenant: `kimiafarma.mcv3.com`
+- Platform admin: `platform.mcv3.com`
+
+### Directory Structure
+```
+app/
+├── Http/
+│   ├── Controllers/
+│   │   ├── Api/V1/              # API V1 controllers
+│   │   ├── Platform/            # Platform admin controllers
+│   │   └── Corporate/           # Corporate portal controllers
+│   ├── Middleware/              # Custom middleware
+│   ├── Requests/Api/V1/         # Form requests
+│   └── Resources/Api/V1/        # API resources
+├── Models/                      # Eloquent models
+├── Services/                    # Business logic services
+└── Policies/                    # Authorization policies
+
+database/
+├── factories/                   # Model factories
+├── migrations/                  # Database migrations
+└── seeders/                     # Database seeders
+
+routes/
+├── api.php                      # API routes
+├── web.php                      # Web routes
+├── tenant.php                   # Tenant-specific routes
+└── platform.php                 # Platform admin routes
+
+tests/
+├── Feature/
+│   └── Api/V1/                  # API feature tests
+└── Unit/
+    └── Models/                  # Model unit tests
+```
+
+### Security Best Practices
+1. **Input Validation** - Form Requests untuk semua API endpoints
+2. **SQL Injection Prevention** - Eloquent ORM & parameter binding
+3. **XSS Protection** - Blade templating auto-escape
+4. **CSRF Protection** - Laravel CSRF token
+5. **Rate Limiting** - Throttle middleware
+6. **Authorization** - Policies & Gates
+7. **Tenant Isolation** - Automatic tenant scoping
+
+## 🔧 Configuration
+
+### Environment Variables
+```env
+# Application
+APP_NAME="MCv3 Platform"
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://yourdomain.com
+
+# Database
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=mcv3
+DB_USERNAME=root
+DB_PASSWORD=
+
+# Redis
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+
+# Cache & Session
+CACHE_DRIVER=redis
+SESSION_DRIVER=redis
+QUEUE_CONNECTION=redis
+
+# Mail
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=
+MAIL_PASSWORD=
+
+# Payment
+MIDTRANS_SERVER_KEY=
+MIDTRANS_CLIENT_KEY=
+MIDTRANS_IS_PRODUCTION=false
+
+# Monitoring
+SENTRY_LARAVEL_DSN=
+TELESCOPE_ENABLED=true
+```
+
+## 📖 Common Tasks
+
+### Creating a New Tenant
+```bash
+php artisan tenant:create --name="PT Kimia Farma" --slug=kimiafarma --email=admin@kimiafarma.com
+```
+
+### Running Queue Worker
+```bash
+# Development
+php artisan queue:listen
+
+# Production (with Supervisor)
+php artisan queue:work --tries=3 --timeout=90
+```
+
+### Clearing Cache
+```bash
+php artisan cache:clear
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+```
+
+### Database Backup
+```bash
+php artisan backup:run
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+### Code Style
+```bash
+# Format code using Laravel Pint
+./vendor/bin/pint
+
+# Check code style
+./vendor/bin/pint --test
+```
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 👥 Team
+
+- **Backend Team** - Laravel development
+- **Frontend Team** - UI/UX implementation
+- **DevOps Team** - Infrastructure & deployment
+
+## 📞 Support
+
+- **Documentation**: [docs.yourdomain.com](https://docs.yourdomain.com)
+- **Issues**: [GitHub Issues](https://github.com/your-org/mcv3/issues)
+- **Email**: support@yourdomain.com
+
+## 🗺️ Roadmap
+
+### Q1 2026
+- [ ] Mobile app (React Native)
+- [ ] Real-time notifications (WebSocket)
+- [ ] Advanced analytics dashboard
+- [ ] Export features (PDF, Excel)
+
+### Q2 2026
+- [ ] Telemedicine video call integration
+- [ ] AI-powered health insights
+- [ ] Integration dengan HRIS platforms
+- [ ] Multi-language support
+
+---
+
+**Built with ❤️ using Laravel 12**
