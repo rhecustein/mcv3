@@ -202,6 +202,17 @@ Route::middleware(['auth', 'can:isSuperadmin'])
         Route::post('/block-ip', [SessionLoginController::class, 'blockIp'])->name('block');
         Route::post('/unblock-ip', [SessionLoginController::class, 'unblockIp'])->name('unblock');
     });
+
+    // ========== PDF STORAGE MANAGEMENT ==========
+    Route::prefix('pdf-storage')->name('pdf-storage.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'index'])->name('index');
+        Route::get('/settings', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'settings'])->name('settings');
+        Route::post('/settings', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'updateSettings'])->name('update-settings');
+        Route::post('/cleanup', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'cleanup'])->name('cleanup');
+        Route::get('/logs', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'logs'])->name('logs');
+        Route::post('/restore', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'restore'])->name('restore');
+        Route::get('/statistics', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'statistics'])->name('statistics');
+    });
 });
 
 // ==================== ADMIN ROUTES ====================

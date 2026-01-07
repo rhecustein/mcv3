@@ -140,3 +140,28 @@ class ImageOptimizer
         return $cached;
     }
 }
+
+if (!function_exists('formatBytes')) {
+    /**
+     * Format bytes to human-readable size
+     *
+     * @param int|null $bytes
+     * @param int $precision
+     * @return string
+     */
+    function formatBytes(?int $bytes, int $precision = 2): string
+    {
+        if ($bytes === null || $bytes === 0) {
+            return '0 B';
+        }
+
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $bytes = max($bytes, 0);
+        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow = min($pow, count($units) - 1);
+
+        $bytes /= (1 << (10 * $pow));
+
+        return round($bytes, $precision) . ' ' . $units[$pow];
+    }
+}
