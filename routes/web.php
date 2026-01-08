@@ -210,7 +210,9 @@ Route::middleware(['auth', 'can:isSuperadmin'])
         Route::post('/settings', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'updateSettings'])->name('update-settings');
         Route::post('/cleanup', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'cleanup'])->name('cleanup');
         Route::get('/logs', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'logs'])->name('logs');
+        Route::get('/archives', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'archives'])->name('archives');
         Route::post('/restore', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'restore'])->name('restore');
+        Route::post('/bulk-restore', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'bulkRestore'])->name('bulk-restore');
         Route::get('/statistics', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'statisticsPage'])->name('statistics');
         Route::get('/api/statistics', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'statistics'])->name('api.statistics');
     });

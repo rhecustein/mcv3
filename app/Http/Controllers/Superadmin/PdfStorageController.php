@@ -302,6 +302,113 @@ class PdfStorageController extends Controller
     }
 
     /**
+     * Archives management page
+     */
+    public function archives(Request $request)
+    {
+        // Base query for archived PDFs
+        $query = Result::where('pdf_archived', true)
+            ->whereNotNull('pdf_archive_path');
+
+        // Apply filters
+        if ($request->filled('unique_code')) {
+            $query->where('unique_code', 'like', '%' . $request->unique_code . '%');
+        }
+
+        if ($request->filled('tenant_id')) {
+            $query->where('tenant_id', $request->tenant_id);
+        }
+
+        if ($request->filled('archived_from')) {
+            $query->where('pdf_deleted_at', '>=', $request->archived_from);
+        }
+
+        if ($request->filled('archived_to')) {
+            $query->where('pdf_deleted_at', '<=', $request->archived_to . ' 23:59:59');
+        }
+
+        // Paginate results
+        $archivedPdfs = $query->orderByDesc('pdf_deleted_at')->paginate(50);
+
+        // Archive statistics
+        $totalArchived = Result::where('pdf_archived', true)->count();
+        $totalSize = Result::where('pdf_archived', true)->sum('pdf_size_bytes');
+        $restoreable = Result::where('pdf_archived', true)
+            ->whereNotNull('pdf_archive_path')
+            ->count();
+
+        // Glacier pricing: $0.004/GB/month
+        $monthlyCost = ($totalSize / 1024 / 1024 / 1024) * 0.004;
+
+        $archiveStats = [
+            'total_count' => $totalArchived,
+            'total_size' => $totalSize,
+            'monthly_cost' => $monthlyCost,
+            'restoreable' => $restoreable,
+        ];
+
+        return view('superadmin.pdf-storage.archives', compact('archivedPdfs', 'archiveStats'));
+    }
+
+    /**
+     * Bulk restore archived PDFs
+     */
+    public function bulkRestore(Request $request)
+    {
+        $validated = $request->validate([
+            'result_ids' => 'required|array',
+            'result_ids.*' => 'required|exists:results,id',
+        ]);
+
+        $successCount = 0;
+        $errorCount = 0;
+        $errors = [];
+
+        foreach ($validated['result_ids'] as $resultId) {
+            $result = Result::find($resultId);
+
+            if (!$result || !$result->pdf_archived || !$result->pdf_archive_path) {
+                $errorCount++;
+                $errors[] = "Result ID {$resultId}: Not archived or no archive path";
+                continue;
+            }
+
+            try {
+                // Restore from archive
+                $archiveContent = Storage::disk('s3')->get($result->pdf_archive_path);
+
+                // Save back to local storage
+                $localPath = "certificates/{$result->tenant_id}/{$result->unique_code}.pdf";
+                Storage::disk('public')->put($localPath, $archiveContent);
+
+                // Update result
+                $result->update([
+                    'pdf_path' => $localPath,
+                    'pdf_deleted_at' => null,
+                    'pdf_archived' => false,
+                ]);
+
+                $successCount++;
+
+            } catch (\Exception $e) {
+                $errorCount++;
+                $errors[] = "Result ID {$resultId}: " . $e->getMessage();
+            }
+        }
+
+        $message = "Restored {$successCount} PDFs successfully.";
+        if ($errorCount > 0) {
+            $message .= " {$errorCount} failed.";
+        }
+
+        if ($errorCount > 0 && $successCount === 0) {
+            return back()->with('error', $message . ' Errors: ' . implode(', ', array_slice($errors, 0, 3)));
+        }
+
+        return back()->with('success', $message);
+    }
+
+    /**
      * Helper: Format bytes to human-readable
      */
     private function formatBytes(?int $bytes): string
