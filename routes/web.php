@@ -223,11 +223,18 @@ Route::middleware(['auth', CheckRoleType::class . ':admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
-    
+
     // Dashboard
     Route::get('/dashboard', [AdminManagementController::class, 'dashboard'])->name('dashboard');
-    
-    // Admin specific routes can be added here
+
+    // ========== PDF STORAGE MANAGEMENT (Admin/Tenant) ==========
+    Route::prefix('pdf-storage')->name('pdf-storage.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\PdfStorageController::class, 'index'])->name('dashboard');
+        Route::get('/browse', [\App\Http\Controllers\Admin\PdfStorageController::class, 'browse'])->name('browse');
+        Route::get('/download/{id}', [\App\Http\Controllers\Admin\PdfStorageController::class, 'download'])->name('download');
+        Route::get('/settings', [\App\Http\Controllers\Admin\PdfStorageController::class, 'settings'])->name('settings');
+        Route::get('/api/storage-info', [\App\Http\Controllers\Admin\PdfStorageController::class, 'storageInfo'])->name('api.storage-info');
+    });
 });
 
 // ==================== OUTLET ROUTES ====================
