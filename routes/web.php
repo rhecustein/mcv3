@@ -215,6 +215,13 @@ Route::middleware(['auth', 'can:isSuperadmin'])
         Route::post('/bulk-restore', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'bulkRestore'])->name('bulk-restore');
         Route::get('/statistics', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'statisticsPage'])->name('statistics');
         Route::get('/api/statistics', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'statistics'])->name('api.statistics');
+
+        // Advanced Features
+        Route::get('/compression', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'compressionManagement'])->name('compression');
+        Route::put('/compression/settings', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'updateCompressionSettings'])->name('compression.update-settings');
+        Route::post('/compression/compress-uncompressed', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'compressUncompressed'])->name('compression.compress-uncompressed');
+        Route::get('/monitoring', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'monitoring'])->name('monitoring');
+        Route::get('/export', [\App\Http\Controllers\Superadmin\PdfStorageController::class, 'exportReport'])->name('export');
     });
 });
 
