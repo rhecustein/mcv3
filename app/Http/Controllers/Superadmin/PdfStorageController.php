@@ -180,7 +180,98 @@ class PdfStorageController extends Controller
     }
 
     /**
-     * Storage statistics API
+     * Statistics page with charts
+     */
+    public function statisticsPage()
+    {
+        // Total statistics
+        $totalPdfs = Result::whereNotNull('pdf_path')->whereNull('pdf_deleted_at')->count();
+        $totalSize = Result::whereNotNull('pdf_size_bytes')->sum('pdf_size_bytes');
+
+        // Compression stats
+        $compressedCount = Result::where('pdf_compressed', true)->count();
+        $originalSize = Result::where('pdf_compressed', true)->sum('pdf_original_size_bytes');
+        $compressedSize = Result::where('pdf_compressed', true)->sum('pdf_size_bytes');
+        $avgRatio = $originalSize > 0 ? round((($originalSize - $compressedSize) / $originalSize) * 100) : 0;
+
+        // Cost calculation (AWS S3 pricing: $0.023/GB/month)
+        $monthlyCost = ($totalSize / 1024 / 1024 / 1024) * 0.023;
+
+        $stats = [
+            'total' => [
+                'pdfs' => $totalPdfs,
+                'size_bytes' => $totalSize,
+                'size_formatted' => formatBytes($totalSize),
+                'archived' => Result::where('pdf_archived', true)->count(),
+            ],
+            'compression' => [
+                'compressed_count' => $compressedCount,
+                'original_size' => $originalSize,
+                'compressed_size' => $compressedSize,
+                'savings' => $originalSize - $compressedSize,
+                'avg_ratio' => $avgRatio,
+            ],
+            'cost' => [
+                'monthly' => $monthlyCost,
+                'yearly' => $monthlyCost * 12,
+                'with_compression' => ($compressedSize / 1024 / 1024 / 1024) * 0.023,
+            ],
+            'top_tenants' => Result::select('tenant_id')
+                ->whereNotNull('pdf_path')
+                ->whereNull('pdf_deleted_at')
+                ->selectRaw('COUNT(*) as pdf_count')
+                ->selectRaw('SUM(pdf_size_bytes) as total_bytes')
+                ->selectRaw('SUM(CASE WHEN pdf_compressed = 1 THEN 1 ELSE 0 END) as compressed_count')
+                ->selectRaw('SUM(CASE WHEN pdf_compressed = 1 THEN pdf_original_size_bytes - pdf_size_bytes ELSE 0 END) as total_savings')
+                ->selectRaw('(SUM(pdf_size_bytes) / 1024 / 1024 / 1024 * 0.023) as monthly_cost')
+                ->groupBy('tenant_id')
+                ->orderByDesc('total_bytes')
+                ->limit(10)
+                ->get(),
+        ];
+
+        // Chart data
+        $monthlyData = Result::whereNotNull('pdf_generated_at')
+            ->selectRaw('DATE_FORMAT(pdf_generated_at, "%Y-%m") as month')
+            ->selectRaw('COUNT(*) as count')
+            ->selectRaw('SUM(pdf_size_bytes) as size_bytes')
+            ->groupBy('month')
+            ->orderBy('month', 'asc')
+            ->limit(12)
+            ->get();
+
+        $tenantData = Result::select('tenant_id')
+            ->whereNotNull('pdf_path')
+            ->whereNull('pdf_deleted_at')
+            ->selectRaw('SUM(pdf_size_bytes) as total_bytes')
+            ->groupBy('tenant_id')
+            ->orderByDesc('total_bytes')
+            ->limit(8)
+            ->get();
+
+        $chartData = [
+            'monthly' => [
+                'labels' => $monthlyData->pluck('month')->toArray(),
+                'count' => $monthlyData->pluck('count')->toArray(),
+                'storage' => $monthlyData->pluck('size_bytes')->map(fn($b) => round($b / 1024 / 1024 / 1024, 2))->toArray(),
+                'generated' => $monthlyData->pluck('count')->toArray(),
+            ],
+            'tenants' => [
+                'labels' => $tenantData->pluck('tenant_id')->toArray(),
+                'sizes' => $tenantData->pluck('total_bytes')->map(fn($b) => round($b / 1024 / 1024, 2))->toArray(),
+            ],
+            'compression' => [
+                'original_size' => round($originalSize / 1024 / 1024 / 1024, 2),
+                'compressed_size' => round($compressedSize / 1024 / 1024 / 1024, 2),
+                'savings' => round(($originalSize - $compressedSize) / 1024 / 1024 / 1024, 2),
+            ],
+        ];
+
+        return view('superadmin.pdf-storage.statistics', compact('stats', 'chartData'));
+    }
+
+    /**
+     * Storage statistics API (JSON)
      */
     public function statistics()
     {
@@ -188,7 +279,7 @@ class PdfStorageController extends Controller
             'total' => [
                 'pdfs' => Result::whereNotNull('pdf_path')->count(),
                 'size_bytes' => Result::sum('pdf_size_bytes'),
-                'size_formatted' => $this->formatBytes(Result::sum('pdf_size_bytes')),
+                'size_formatted' => formatBytes(Result::sum('pdf_size_bytes')),
                 'archived' => Result::where('pdf_archived', true)->count(),
             ],
             'by_month' => Result::whereNotNull('pdf_generated_at')
