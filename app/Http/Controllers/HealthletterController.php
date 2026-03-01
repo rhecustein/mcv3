@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use App\Services\ResultService;
 use App\Services\PatientService;
 use App\Services\DocumentService;
@@ -319,6 +320,34 @@ class HealthletterController extends Controller
         return view('outlets.results.show', [
             'result' => $result,
         ]);
+    }
+
+    /**
+     * Show Surat Sehat (SKB) document
+     *
+     * @param string $uniqueCode
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
+     */
+    public function showSuratSehat($uniqueCode)
+    {
+        $result = Result::with(['patient', 'doctor.user', 'outlet', 'companyIS'])
+            ->where('unique_code', $uniqueCode)
+            ->firstOrFail();
+        return view('pdf.surat_sehat', compact('result'));
+    }
+
+    /**
+     * Show Surat Sakit (MC) document
+     *
+     * @param string $uniqueCode
+     * @return \Illuminate\View\View
+     */
+    public function showSuratSakit($uniqueCode)
+    {
+        $result = Result::with(['patient', 'doctor.user', 'outlet', 'companyIS'])
+            ->where('unique_code', $uniqueCode)
+            ->firstOrFail();
+        return view('pdf.surat_sakit', compact('result'));
     }
 
     /**

@@ -37,7 +37,7 @@ class GenerateSuratSehatPDF implements ShouldQueue
         ]);
 
         try {
-            $result = Result::with(['patient', 'doctor.user', 'outlet'])->findOrFail($this->resultId);
+            $result = Result::with(['patient', 'doctor.user', 'outlet', 'companyIS'])->findOrFail($this->resultId);
 
             if (!$result->patient || !$result->doctor || !$result->outlet) {
                 throw new \Exception('Relasi tidak lengkap: outlet / doctor / patient null.');
